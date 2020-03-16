@@ -12,6 +12,14 @@ typedef struct{
     GLfloat roll; 
     GLfloat pitch; 
     GLfloat yaw;
+
+    GLfloat vroll; 
+    GLfloat vpitch; 
+    GLfloat vyaw;
+
+    GLfloat vX; 
+    GLfloat vY; 
+    GLfloat vZ;
 } Plane;
 
 void PlaneView(Plane *p);

@@ -4,6 +4,14 @@
 
 void PlaneView(Plane *p)
 {
+    p->X += p->vX;
+    p->Y += p->vY;
+    p->Z += p->vZ;
+
+    p->roll += p->vroll;
+    p->pitch += p->vpitch;
+    p->yaw += p->vyaw;
+
     // roll is rotation about the z axis 
     glRotatef(p->roll, 0.0f, 0.0f, 1.0f);
     // yaw, or heading, is rotation about the y axis 
