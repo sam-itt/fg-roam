@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "geodesy.h"
+
 static double EARTH_A = NAN;
 static double EARTH_B = NAN;
 static double EARTH_F = NAN;
@@ -328,3 +330,126 @@ const double *llhxyz(double flat, double flon, double altkm)
     return xvec;
 }
 
+/**
+ * Computes the shortest distance (km) between two (lat/lon) points,
+ * using haversine formula.
+ *
+ * @param lat1 first point latitude in degrees 
+ * @param lon1 first point longitude in degrees
+ * @param lat2 second point latitude in degrees 
+ * @param lon2 second point longitude in degrees 
+ * @return distance between the two in km.
+ */
+double geo_dist(double lat1, double lon1, double lat2, double lon2)
+{
+	double dx, dy, dz;
+	lon1 -= lon2;
+	lon1 *= (M_PI / 180.0);
+    lat1 *= (M_PI / 180.0);
+    lat2 *= (M_PI / 180.0);
+ 
+	dz = sin(lat1) - sin(lat2);
+	dx = cos(lon1) * cos(lat1) - cos(lat2);
+	dy = sin(lon1) * cos(lat1);
+	return asin(sqrt(dx * dx + dy * dy + dz * dz) / 2) * 2 * EARTH_RADIUS;
+}
+
+
+/**
+ * Computes the bearing/heading from point1 to point2, both (lat/lon) in degrees.
+ *
+ * @param lat1 first point latitude in degrees 
+ * @param lon1 first point longitude in degrees
+ * @param lat2 second point latitude in degrees 
+ * @param lon2 second point longitude in degrees 
+ * @return Bearing/Heading between the two in degrees.
+ */
+double geo_bearing(double lat1, double lon1, double lat2, double lon2)
+{
+    double rv;
+
+    /*Convert all coordinates in radians*/
+    lat1 *= (M_PI / 180.0);
+ 	lon1 *= (M_PI / 180.0);
+    lat2 *= (M_PI / 180.0);
+ 	lon2 *= (M_PI / 180.0);
+
+    double dLon = (lon2 - lon1);
+
+    double y = sin(dLon) * cos(lat2);
+    double x = cos(lat1)*sin(lat2) - sin(lat1)*cos(lat2)*cos(dLon);
+
+    rv = atan2(y, x);
+    /*Radians to degrees*/
+    rv *= (180.0 / M_PI);
+    rv = fmod(rv + 360, 360);
+//    rv = (rv + 360) % 360;
+//    rv = 360 - rv; // count degrees counter-clockwise - remove to make clockwise
+    return rv;
+}
+
+/**
+ * Computes the landing destination (lat/lon) where starting from
+ * olat/olon with bearing and going distance km.
+ *
+ * <p>Returns a pointer to 3 doubles (x,y,z) all in km. 
+ * Pointerer references local static memory, the caller must not 
+ * free it.</p>
+ *
+ * @param olat origin point latitude in degrees 
+ * @param olon origin point longitude in degrees
+ * @param distance distance walked in km 
+ * @param bearing orientation at the start point 
+ * @return       pointer to 2 doubles (lat,lon), not to be freed
+ */
+double *geo_destination(double olat, double olon, double distance, double bearing)
+{
+    static double rv[2];
+
+    //Earth Radious in KM
+   // double R = 6378.14;
+    double R = EARTH_RADIUS;
+
+    //convert to radians
+    olat *= (M_PI/180);
+    olon *= (M_PI/180);
+    bearing *= (M_PI/180);
+
+    rv[0] = asin(sin(olat)*cos(distance/R) + cos(olat)*sin(distance/R)*cos(bearing));
+    rv[1] = olon + atan2(sin(bearing)*sin(distance/R)*cos(olat), cos(distance/R)-sin(olat)*sin(rv[0]));
+
+    //convert to degrees
+    rv[0] *= (180/M_PI);
+    rv[1] *= (180/M_PI);
+
+    return rv;
+}
+
+/**
+ * Computes bounding geo box top left and down right coordinates (lat/lon)
+ * which has its center on lat/lon (degrees) with a span of radius (km).
+ *
+ * <p>Returns a pointer to 4 doubles (lat1,lon1, lat2,lon2) all in degrees. 
+ * Pointerer references local static memory, the caller must not 
+ * free it.</p>
+ *
+ * @param clat center latitude in degrees 
+ * @param clon center longitude in degrees
+ * @param radius  radius in km 
+ * @return       pointer to 4 doubles (lat,lon)*2, not to be freed
+ */
+double *geo_bounding_box(double clat, double clon, double radius)
+{
+    static double rv[4];
+
+    double dlat = 360.0 * radius/EARTH_RADIUS;
+    double dlon = dlat * cos(clat*(M_PI/180));
+
+    rv[0] = clat - dlat; //up left latitude
+    rv[1] = clon - dlon; //up left longitude
+
+    rv[2] = clat + dlat; //up left latitude
+    rv[3] = clon + dlon; //up left longitude
+    
+    return rv;
+}

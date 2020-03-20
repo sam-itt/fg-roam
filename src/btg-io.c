@@ -381,7 +381,7 @@ SGBinObject *sg_bin_object_new(void)
     rv = g_new0(SGBinObject, 1);
 
     rv->wgs84_nodes = g_array_new(FALSE, TRUE, sizeof(SGVec3d));
-    printf("rv->wgs84_nodes: %p\n",rv->wgs84_nodes);
+    //printf("rv->wgs84_nodes: %p\n",rv->wgs84_nodes);
     rv->colors = g_array_new(FALSE, TRUE, sizeof(SGVec3d));
     rv->normals = g_array_new(FALSE, TRUE, sizeof(SGVec3f));
     rv->texcoords = g_array_new(FALSE, TRUE, sizeof(SGVec2f));
@@ -719,7 +719,7 @@ void sg_bin_object_load(SGBinObject *self, const char *filename)
         nobjects = v;
     }
 
-    printf("SGBinObject::read_bin Total objects to read = %d\n", nobjects);
+    //printf("SGBinObject::read_bin Total objects to read = %d\n", nobjects);
 
     if ( sgReadError() ) {
         printf("Error reading BTG file header\n");
@@ -749,7 +749,7 @@ void sg_bin_object_load(SGBinObject *self, const char *filename)
             nelements = v;
         }
 
-        printf("SGBinObject::read_bin object #%d = %d props = %d elements = %d\n", i, (int)obj_type, nproperties, nelements);
+        //printf("SGBinObject::read_bin object #%d = %d props = %d elements = %d\n", i, (int)obj_type, nproperties, nelements);
 
         if ( obj_type == SG_BOUNDING_SPHERE ) {
             // read bounding sphere properties

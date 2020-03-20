@@ -1,7 +1,7 @@
 #ifndef PLANE_H
 #define PLANE_H
 
-
+#include <stdbool.h>
 #include <GL/glut.h>
 
 typedef struct{
@@ -12,6 +12,9 @@ typedef struct{
     GLfloat roll; 
     GLfloat pitch; 
     GLfloat yaw;
+
+    double bearing;
+    bool dirty; 
 
     GLfloat vroll; 
     GLfloat vpitch; 
@@ -25,4 +28,6 @@ typedef struct{
 void PlaneView(Plane *p);
 void DumpPlane(Plane *p);
 
+void plane_get_position(Plane *p, double *lat, double *lon, double *alt);
+void plane_show_position(Plane *p);
 #endif

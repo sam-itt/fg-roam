@@ -1,3 +1,4 @@
+#define _GNU_SOURCE 1 
 #define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
 #include <stdio.h>
@@ -14,21 +15,106 @@
 #include "texture.h"
 #include "plane.h"
 #include "mesh.h"
+#include "bucket.h"
+#include "geodesy.h"
+#include "misc.h"
+#include "tile-manager.h"
 
-SGBinObject *terrain = NULL;
 Plane *plane = NULL;
+SGBucket *bucket = NULL;
 Mesh *mesh = NULL;
 
-
-void init(void)
+Mesh *get_mesh_position(double lat, double lon)
 {
-    mesh = load_terrain("../test/btg/2990336.btg");
+    Mesh *rv;
+    SGBucket *b;
+    char *filename;
+
+    rv = NULL;
+
+    b = sg_bucket_new(lon, lat);
+    asprintf(&filename,"/home/samuel/dev/efis/Terrain/%s", sg_bucket_getfilename(b));
+    printf("Will load next bucket: path=%s\n",filename);
+    rv = load_terrain(filename);
+    free(filename);
+    bucket = b;
+
+    size_t sze = mesh_get_size(rv, false);
+    printf("Mesh size: %0.2f %s\n", get_sized_unit_value(sze), get_sized_unit_text(sze));
+    sze = mesh_get_size(rv, true);
+    printf("Mesh size (data only): %0.2f %s\n", get_sized_unit_value(sze), get_sized_unit_text(sze));
+    
+    b = sg_bucket_sibling(bucket,+1,0);
+    printf("dx = +1, dy = 0: %s\n", sg_bucket_getfilename(b));
+    sg_bucket_free(b);
+
+    b = sg_bucket_sibling(bucket,-1,0);
+    printf("dx = -1, dy = 0: %s\n", sg_bucket_getfilename(b));
+    sg_bucket_free(b);
+
+    b = sg_bucket_sibling(bucket,+1,1);
+    printf("dx = +1, dy = 1: %s\n", sg_bucket_getfilename(b));
+    sg_bucket_free(b);
+
+    b = sg_bucket_sibling(bucket,0,1);
+    printf("dx = 0, dy = 1: %s\n", sg_bucket_getfilename(b));
+    sg_bucket_free(b);
+
+    b = sg_bucket_sibling(bucket,-1,1);
+    printf("dx = -1, dy = 1: %s\n", sg_bucket_getfilename(b));
+    sg_bucket_free(b);
+
+    b = sg_bucket_sibling(bucket,+1,-1);
+    printf("dx = +1, dy = -1: %s\n", sg_bucket_getfilename(b));
+    sg_bucket_free(b);
+
+    b = sg_bucket_sibling(bucket,0,-1);
+    printf("dx = 0, dy = -1: %s\n", sg_bucket_getfilename(b));
+    sg_bucket_free(b);
+
+    b = sg_bucket_sibling(bucket,-1,-1);
+    printf("dx = -1, dy = -1: %s\n", sg_bucket_getfilename(b));
+    sg_bucket_free(b);
+
+
+//    sg_bucket_free(b);
+
+    return rv;
 }
 
-void render(void)
+Mesh *get_mesh(Plane *p)
 {
-   mesh_render(mesh);
-   return;
+    double lat, lon, height;
+
+    plane_get_position(plane, &lat, &lon, &height);
+    return get_mesh_position(lat,lon);
+}
+
+
+void render(double vis)
+{
+    SGBucket **buckets;
+    Mesh *m;
+    double lat, lon, height;
+    SGVec3d epos;
+
+    plane_get_position(plane, &lat, &lon, &height);
+    buckets = tile_manager_get_tiles(tile_manager_get_instance(), lat, lon, 1.0);
+    
+    epos = (SGVec3d){plane->X,plane->Y,plane->Z};
+
+    for(int i = 0; buckets[i] != NULL; i++){
+        m = sg_bucket_get_mesh(buckets[i]);
+            if(m)
+                mesh_render(m, &epos, vis);
+    }
+#if 0
+    for(SGBucket *b = *buckets; *buckets != NULL; b++){
+        m = sg_bucket_get_mesh(b);
+            if(m)
+                mesh_render(m);
+    }
+#endif
 }
 
 int handle_keyboard(SDL_KeyboardEvent *event)
@@ -167,7 +253,6 @@ int main(int argc, char **argv)
     texture_new("../textures/mixedforest.png","MixedForest");
     texture_new("../textures/shrub1.png","Sclerophyllous");
 
-    init();
     plane = calloc(1, sizeof(Plane));
     plane->X = 4742006.50000;
     plane->Y = 185376.81250;
@@ -176,8 +261,19 @@ int main(int argc, char **argv)
     plane->roll = 79.69936;
     plane->pitch = -9.00000;
     plane->yaw = 16.80003;
+    plane->bearing = NAN;
+
+    //mesh = get_mesh(plane);
+
+    Uint32 ticks;
+    Uint32 last_ticks = 0; 
+    Uint32 elapsed = 0; 
+    Uint32 acc = 0; 
+    Uint32 nframes = 0;
 
     while(!done){
+        ticks = SDL_GetTicks();
+
         done = handle_event();
 
         glClearColor (1.0, 1.0, 1.0, 0.0);
@@ -192,12 +288,25 @@ int main(int argc, char **argv)
 
         PlaneView(plane);
 
-        render();
-        SDL_Delay(20);
+        render(10000.0);
         SDL_GL_SwapWindow(window);
+        nframes++;
+        elapsed = ticks - last_ticks;
+        acc += elapsed;
+        if(elapsed < 20){
+            SDL_Delay(20 - elapsed);
+        }
+        if(acc >= 4000){ /*1sec*/
+            plane_show_position(plane);
+
+            printf("Current FPS: %d\n",nframes);
+            nframes = 0;
+            acc = 0;
+        }
+        last_ticks = ticks;
     }
 
-
+    sg_bucket_free(bucket);
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();

@@ -98,4 +98,8 @@ SGBinObject *sg_bin_object_new(void);
 bool sg_bin_object_write_obj(SGBinObject *self, const char *filename);
 void sg_bin_object_load(SGBinObject *self, const char *filename);
 
+
+//TODO:Move in a dedicated file
+double sg_vect3d_distSqr(SGVec3d *a, SGVec3d *b);
+void sg_sphered_expand_by(SGSphered *self, SGVec3d *v);
 #endif

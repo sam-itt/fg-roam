@@ -5,7 +5,7 @@ CC=gcc
 CFLAGS=-g3 -O0 `pkg-config glib-2.0 --cflags` -I$(SRCDIR)
 LDFLAGS=-lz -lm `pkg-config glib-2.0 --libs`
 EXEC=test-coords
-SRC= $(wildcard $(SRCDIR)/*.c)
+SRC = $(SRCDIR)/geodesy.c
 SRC += test-coords.c 
 OBJ= $(SRC:.c=.o)
 

@@ -5,6 +5,7 @@
 #include "btg-io.h"
 #include "texture.h"
 
+#if 0
 VGroup *vgroup_new(size_t size)
 {
     VGroup *rv;
@@ -13,15 +14,22 @@ VGroup *vgroup_new(size_t size)
     if(rv){
         rv->verts = calloc(size, sizeof(SGVec3d));
         rv->texs = calloc(size, sizeof(SGVec2f));
+        rv->centroids = calloc(size/3, sizeof(SGVec3d));
     }
     return rv;
 }
+#endif
 
-VGroup *vgroup_init(VGroup *self, size_t size)
+VGroup *vgroup_init(VGroup *self, size_t size, bool self_clear)
 {
+    if(self_clear)
+        memset(self, 0, sizeof(VGroup));
+
     self->verts = calloc(size, sizeof(SGVec3d));
     self->texs = calloc(size, sizeof(SGVec2f));
+    self->centroids = calloc(size/3, sizeof(SGVec3d));
     self->n_vertices = size;
+    self->sbound.radius = -1.0;
 
     return self;
 }
@@ -39,13 +47,48 @@ Mesh *mesh_new(size_t size)
     return rv;
 }
 
+void mesh_free(Mesh *self)
+{
+    VGroup *group;
+
+    for(int i = 0; i < self->n_groups; i++){
+        group = &(self->groups[i]);
+        free(group->verts);
+        free(group->texs);
+        free(group->centroids);
+    }
+    free(self->groups);
+    free(self);
+}
+
+size_t mesh_get_size(Mesh *self, bool data_only)
+{
+    VGroup *group;
+    size_t rv;
+
+    rv = 0;
+    for(int i = 0; i < self->n_groups; i++){
+        group = &(self->groups[i]);
+        if(!data_only)
+            rv += sizeof(VGroup);
+        rv += sizeof(SGVec3d) * group->n_vertices;
+        rv += sizeof(SGVec2f) * group->n_vertices;
+    }
+    if(!data_only)
+        rv += sizeof(Mesh);
+    return rv;
+}
+
+
+
+
 Mesh *load_terrain(char *filename)
 {
-    Mesh *rv;
+    Mesh *rv = NULL;
     SGBinObject *terrain;
 
     terrain = sg_bin_object_new();
-    sg_bin_object_load(terrain,"../test/btg/2990336.btg");
+    sg_bin_object_load(terrain, filename);
 
 
     if ( terrain->tris_v->len != 0 ) {
@@ -89,13 +132,13 @@ Mesh *load_terrain(char *filename)
                 end++;
             }
             //printf("group = %d to %d\n",start, end-1);
-            //
+
 
             // write group headers
 //            printf("\n");
 //            printf("# usemtl %s\n", material);
             // write groups
-            vgroup_init(&(rv->groups[g_idx]), (end-start)*3);
+            vgroup_init(&(rv->groups[g_idx]), (end-start)*3, false);
             rv->groups[g_idx].tex_id = texture_get_id_by_name(material);
             size_t vidx = 0;
             for (int  i = start; i < end; ++i ) {
@@ -116,18 +159,25 @@ Mesh *load_terrain(char *filename)
                     b = g_array_index(ttcs, int, j);
                     SGVec3d vert = g_array_index(terrain->wgs84_nodes, SGVec3d, a);
                     SGVec2f tex = g_array_index(terrain->texcoords, SGVec2f, b);
+                    vert.x += terrain->gbs_center.x;
+                    vert.y += terrain->gbs_center.y;
+                    vert.z += terrain->gbs_center.z;
                     rv->groups[g_idx].texs[vidx].x = tex.x;
                     rv->groups[g_idx].texs[vidx].y = tex.y;
-                    rv->groups[g_idx].verts[vidx].x = vert.x+terrain->gbs_center.x;
-                    rv->groups[g_idx].verts[vidx].y = vert.y+terrain->gbs_center.y;
-                    rv->groups[g_idx].verts[vidx].z = vert.z+terrain->gbs_center.z;
+                    rv->groups[g_idx].verts[vidx].x = vert.x;
+                    rv->groups[g_idx].verts[vidx].y = vert.y;
+                    rv->groups[g_idx].verts[vidx].z = vert.z;
+                    sg_sphered_expand_by(&(rv->groups[g_idx].sbound), &vert);
 
                     vidx++;
-//                    rv->groups[g_idx].n_vertices = vidx+1;
                 }
+                rv->groups[g_idx].centroids[i-start] = (SGVec3d){
+                    (rv->groups[g_idx].verts[0].x + rv->groups[g_idx].verts[1].x + rv->groups[g_idx].verts[2].x)/3.0,
+                    (rv->groups[g_idx].verts[0].y + rv->groups[g_idx].verts[1].y + rv->groups[g_idx].verts[2].y)/3.0,
+                    (rv->groups[g_idx].verts[0].z + rv->groups[g_idx].verts[1].z + rv->groups[g_idx].verts[2].z)/3.0
+                };
             }
             g_idx++;
-//            rv->n_groups = g_idx+1;
 
             start = end;
             end = start + 1;
@@ -137,21 +187,39 @@ Mesh *load_terrain(char *filename)
 }
 
 
-void mesh_render(Mesh *self)
+void mesh_render(Mesh *self, SGVec3d *epos, double vis)
 {
     VGroup *group;
+    double vis2;
 
+    vis2 = vis*vis;
     glPushMatrix();
     for(int i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
+//        if(epos && sg_vect3d_distSqr(epos, &(group->sbound.center)) > vis2) continue;
         glBindTexture(GL_TEXTURE_2D, group->tex_id);
         glBegin(GL_TRIANGLES);
+#ifdef ENABLE_CENTRIOD_CULLING
+        int tidx = 0;
+        for(int j = 0; j < group->n_vertices; j+=3, tidx++){
+            if(epos && sg_vect3d_distSqr(epos, &(group->centroids[tidx])) > vis2) continue;
+            for(int k = 0; k < 3; k++){
+                int idx = j+k;
+                glTexCoord2f(group->texs[idx].x, group->texs[idx].y);
+                glVertex3f(group->verts[idx].x,
+                           group->verts[idx].y,
+                           group->verts[idx].z);
+            }
+        }
+#else
         for(int j = 0; j < group->n_vertices; j++){
             glTexCoord2f(group->texs[j].x, group->texs[j].y);
             glVertex3f(group->verts[j].x,
                        group->verts[j].y,
                        group->verts[j].z);
         }
+
+#endif
         glEnd();
     }
     glPopMatrix();
