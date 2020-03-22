@@ -14,7 +14,10 @@ typedef struct{
     SGVec3d *verts;
     SGVec2f *texs;
 
-    SGVec3d *centroids;
+    /*Buffers: OpenGL handles*/
+    GLuint element_buffer;
+    GLuint vertex_buffer;
+    GLuint texs_buffer;
 }VGroup;
 
 
@@ -25,10 +28,13 @@ typedef struct{
 }Mesh;
 
 
-Mesh *load_terrain(char *filename);
+Mesh *mesh_new_from_file(const char *filename);
+Mesh *load_terrain(const char *filename);
 void mesh_free(Mesh *self);
 
 size_t mesh_get_size(Mesh *self, bool data_only);
 void mesh_render(Mesh *self, SGVec3d *epos, double vis);
+void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords);
 
+Mesh *mesh_prepare(Mesh *self);
 #endif

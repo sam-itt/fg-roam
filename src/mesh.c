@@ -1,5 +1,13 @@
+#define GL_VERSION_2_1
+#define GL_GLEXT_PROTOTYPES
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glext.h>
 
 #include "mesh.h"
 #include "btg-io.h"
@@ -14,7 +22,6 @@ VGroup *vgroup_new(size_t size)
     if(rv){
         rv->verts = calloc(size, sizeof(SGVec3d));
         rv->texs = calloc(size, sizeof(SGVec2f));
-        rv->centroids = calloc(size/3, sizeof(SGVec3d));
     }
     return rv;
 }
@@ -27,7 +34,6 @@ VGroup *vgroup_init(VGroup *self, size_t size, bool self_clear)
 
     self->verts = calloc(size, sizeof(SGVec3d));
     self->texs = calloc(size, sizeof(SGVec2f));
-    self->centroids = calloc(size/3, sizeof(SGVec3d));
     self->n_vertices = size;
     self->sbound.radius = -1.0;
 
@@ -47,6 +53,16 @@ Mesh *mesh_new(size_t size)
     return rv;
 }
 
+Mesh *mesh_new_from_file(const char *filename)
+{
+    Mesh *rv;
+   rv = load_terrain(filename);
+
+    mesh_prepare(rv);
+    return rv;
+}
+
+
 void mesh_free(Mesh *self)
 {
     VGroup *group;
@@ -55,7 +71,6 @@ void mesh_free(Mesh *self)
         group = &(self->groups[i]);
         free(group->verts);
         free(group->texs);
-        free(group->centroids);
     }
     free(self->groups);
     free(self);
@@ -79,10 +94,40 @@ size_t mesh_get_size(Mesh *self, bool data_only)
     return rv;
 }
 
+Mesh *mesh_prepare(Mesh *self)
+{
+
+    VGroup *group;
+
+
+    for(unsigned int i = 0; i < self->n_groups; i++){
+        group = &(self->groups[i]);
+
+        glGenBuffers(1, &(group->vertex_buffer));
+        glBindBuffer(GL_ARRAY_BUFFER, group->vertex_buffer);
+        glBufferData(
+            GL_ARRAY_BUFFER,
+            group->n_vertices*sizeof(SGVec3d),
+            group->verts,
+            GL_STATIC_DRAW
+        );
+
+        glGenBuffers(1, &group->texs_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, group->texs_buffer);
+        glBufferData(
+            GL_ARRAY_BUFFER,
+            group->n_vertices*sizeof(SGVec2f),
+            group->texs,
+            GL_STATIC_DRAW
+        );
+    }
+    printf("Mesh %p prepared\n", self);
+    return self;
+}
 
 
 
-Mesh *load_terrain(char *filename)
+Mesh *load_terrain(const char *filename)
 {
     Mesh *rv = NULL;
     SGBinObject *terrain;
@@ -171,11 +216,6 @@ Mesh *load_terrain(char *filename)
 
                     vidx++;
                 }
-                rv->groups[g_idx].centroids[i-start] = (SGVec3d){
-                    (rv->groups[g_idx].verts[0].x + rv->groups[g_idx].verts[1].x + rv->groups[g_idx].verts[2].x)/3.0,
-                    (rv->groups[g_idx].verts[0].y + rv->groups[g_idx].verts[1].y + rv->groups[g_idx].verts[2].y)/3.0,
-                    (rv->groups[g_idx].verts[0].z + rv->groups[g_idx].verts[1].z + rv->groups[g_idx].verts[2].z)/3.0
-                };
             }
             g_idx++;
 
@@ -185,6 +225,46 @@ Mesh *load_terrain(char *filename)
     }
     return rv;
 }
+
+void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords)
+{
+    VGroup *group;
+
+    glPushMatrix();
+    for(int i = 0; i < self->n_groups; i++){
+        group = &(self->groups[i]);
+        glActiveTexture(GL_TEXTURE0 );
+        glBindTexture(GL_TEXTURE_2D, group->tex_id);
+
+        glEnableVertexAttribArray(position);
+        glBindBuffer(GL_ARRAY_BUFFER, group->vertex_buffer);
+        glVertexAttribPointer(
+            position,
+            3, 
+            GL_DOUBLE, 
+            GL_FALSE, 
+            0, /*no need to specify stride on single attribute vectors*/
+            (void*)0
+        );
+
+        glEnableVertexAttribArray(texcoords);
+        glBindBuffer(GL_ARRAY_BUFFER, group->texs_buffer);
+        glVertexAttribPointer(
+            texcoords,
+            2, 
+            GL_FLOAT, 
+            GL_FALSE, 
+            0, /*As above*/
+            (void*)0
+        );
+
+        glDrawArrays(GL_TRIANGLES, 0, group->n_vertices); // 12*3 indices starting at 0 -> 12 triangles
+        glDisableVertexAttribArray(position);
+        glDisableVertexAttribArray(texcoords);
+    }
+    glPopMatrix();
+}
+
 
 
 void mesh_render(Mesh *self, SGVec3d *epos, double vis)
@@ -196,13 +276,11 @@ void mesh_render(Mesh *self, SGVec3d *epos, double vis)
     glPushMatrix();
     for(int i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
-//        if(epos && sg_vect3d_distSqr(epos, &(group->sbound.center)) > vis2) continue;
         glBindTexture(GL_TEXTURE_2D, group->tex_id);
         glBegin(GL_TRIANGLES);
 #ifdef ENABLE_CENTRIOD_CULLING
         int tidx = 0;
         for(int j = 0; j < group->n_vertices; j+=3, tidx++){
-            if(epos && sg_vect3d_distSqr(epos, &(group->centroids[tidx])) > vis2) continue;
             for(int k = 0; k < 3; k++){
                 int idx = j+k;
                 glTexCoord2f(group->texs[idx].x, group->texs[idx].y);

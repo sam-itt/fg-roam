@@ -11,7 +11,7 @@
 #include <GL/glext.h>
 
 #include "btg-io.h"
-//#include "shader.h"
+#include "shader.h"
 #include "texture.h"
 #include "plane.h"
 #include "mesh.h"
@@ -23,72 +23,11 @@
 Plane *plane = NULL;
 SGBucket *bucket = NULL;
 Mesh *mesh = NULL;
+Shader *shader = NULL;
 
-Mesh *get_mesh_position(double lat, double lon)
-{
-    Mesh *rv;
-    SGBucket *b;
-    char *filename;
-
-    rv = NULL;
-
-    b = sg_bucket_new(lon, lat);
-    asprintf(&filename,"/home/samuel/dev/efis/Terrain/%s", sg_bucket_getfilename(b));
-    printf("Will load next bucket: path=%s\n",filename);
-    rv = load_terrain(filename);
-    free(filename);
-    bucket = b;
-
-    size_t sze = mesh_get_size(rv, false);
-    printf("Mesh size: %0.2f %s\n", get_sized_unit_value(sze), get_sized_unit_text(sze));
-    sze = mesh_get_size(rv, true);
-    printf("Mesh size (data only): %0.2f %s\n", get_sized_unit_value(sze), get_sized_unit_text(sze));
-    
-    b = sg_bucket_sibling(bucket,+1,0);
-    printf("dx = +1, dy = 0: %s\n", sg_bucket_getfilename(b));
-    sg_bucket_free(b);
-
-    b = sg_bucket_sibling(bucket,-1,0);
-    printf("dx = -1, dy = 0: %s\n", sg_bucket_getfilename(b));
-    sg_bucket_free(b);
-
-    b = sg_bucket_sibling(bucket,+1,1);
-    printf("dx = +1, dy = 1: %s\n", sg_bucket_getfilename(b));
-    sg_bucket_free(b);
-
-    b = sg_bucket_sibling(bucket,0,1);
-    printf("dx = 0, dy = 1: %s\n", sg_bucket_getfilename(b));
-    sg_bucket_free(b);
-
-    b = sg_bucket_sibling(bucket,-1,1);
-    printf("dx = -1, dy = 1: %s\n", sg_bucket_getfilename(b));
-    sg_bucket_free(b);
-
-    b = sg_bucket_sibling(bucket,+1,-1);
-    printf("dx = +1, dy = -1: %s\n", sg_bucket_getfilename(b));
-    sg_bucket_free(b);
-
-    b = sg_bucket_sibling(bucket,0,-1);
-    printf("dx = 0, dy = -1: %s\n", sg_bucket_getfilename(b));
-    sg_bucket_free(b);
-
-    b = sg_bucket_sibling(bucket,-1,-1);
-    printf("dx = -1, dy = -1: %s\n", sg_bucket_getfilename(b));
-    sg_bucket_free(b);
-
-
-//    sg_bucket_free(b);
-
-    return rv;
-}
-
-Mesh *get_mesh(Plane *p)
-{
-    double lat, lon, height;
-
-    plane_get_position(plane, &lat, &lon, &height);
-    return get_mesh_position(lat,lon);
-}
+GLint a_position = 0;
+GLint a_texcoords = 0;
+GLint u_tex = 0;
 
 
 void render(double vis)
@@ -105,8 +44,10 @@ void render(double vis)
 
     for(int i = 0; buckets[i] != NULL; i++){
         m = sg_bucket_get_mesh(buckets[i]);
-            if(m)
-                mesh_render(m, &epos, vis);
+            if(m){
+            //   mesh_render(m, &epos, vis);
+                mesh_render_buffer(m, a_position, a_texcoords);
+            }
     }
 #if 0
     for(SGBucket *b = *buckets; *buckets != NULL; b++){
@@ -233,25 +174,26 @@ int main(int argc, char **argv)
 
 
     glEnable(GL_TEXTURE_2D);
+    glEnable(GL_LIGHTING);
 
 
-    texture_new("../textures/asphalt.png","Freeway");
-    texture_new("../textures/gravel.png","Railroad");
-    texture_new("../textures/water-lake.png","Stream");
-    texture_new("../textures/water-lake.png","Watercourse");
-    texture_new("../textures/water-lake.png","Canal");
-    texture_new("../textures/city1.png","Urban");
-    texture_new("../textures/drycrop1.png","DryCrop");
-    texture_new("../textures/irrcrop1.png","IrrCrop");
-    texture_new("../textures/mixedcrop1.png","ComplexCrop");
-    texture_new("../textures/naturalcrop1.png","NaturalCrop");
-    texture_new("../textures/cropgrass1.png","CropGrass");
-    texture_new("../textures/cropgrass1.png","Grassland");
-    texture_new("../textures/shrub1.png","Scrub");
-    texture_new("../textures/deciduous1.png","DeciduousForest");
-    texture_new("../textures/forest1a.png","EvergreenForest");
-    texture_new("../textures/mixedforest.png","MixedForest");
-    texture_new("../textures/shrub1.png","Sclerophyllous");
+    texture_new("../../textures/asphalt.png","Freeway");
+    texture_new("../../textures/gravel.png","Railroad");
+    texture_new("../../textures/water-lake.png","Stream");
+    texture_new("../../textures/water-lake.png","Watercourse");
+    texture_new("../../textures/water-lake.png","Canal");
+    texture_new("../../textures/city1.png","Urban");
+    texture_new("../../textures/drycrop1.png","DryCrop");
+    texture_new("../../textures/irrcrop1.png","IrrCrop");
+    texture_new("../../textures/mixedcrop1.png","ComplexCrop");
+    texture_new("../../textures/naturalcrop1.png","NaturalCrop");
+    texture_new("../../textures/cropgrass1.png","CropGrass");
+    texture_new("../../textures/cropgrass1.png","Grassland");
+    texture_new("../../textures/shrub1.png","Scrub");
+    texture_new("../../textures/deciduous1.png","DeciduousForest");
+    texture_new("../../textures/forest1a.png","EvergreenForest");
+    texture_new("../../textures/mixedforest.png","MixedForest");
+    texture_new("../../textures/shrub1.png","Sclerophyllous");
 
     plane = calloc(1, sizeof(Plane));
     plane->X = 4742006.50000;
@@ -263,7 +205,16 @@ int main(int argc, char **argv)
     plane->yaw = 16.80003;
     plane->bearing = NAN;
 
-    //mesh = get_mesh(plane);
+    shader = shader_new("vertex.gl","fragment.gl");
+    a_position = shader_get_attribute_location(shader, "position");
+    a_texcoords = shader_get_attribute_location(shader, "texcoord");
+    printf("a_position: %d, a_texcoords: %d\n",a_position,a_texcoords);
+    u_tex = shader_get_uniform_location(shader, "texture");
+    if(a_texcoords < 0){
+        printf("Cannot bind a_texcoords\n");
+        exit(-1);
+    }
+
 
     Uint32 ticks;
     Uint32 last_ticks = 0; 
@@ -285,6 +236,9 @@ int main(int argc, char **argv)
 
         glMatrixMode (GL_MODELVIEW);
         glLoadIdentity ();
+
+        glUseProgram(shader->program_id);
+        glUniform1i(u_tex, 0);
 
         PlaneView(plane);
 
