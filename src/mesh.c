@@ -34,6 +34,7 @@ VGroup *vgroup_init(VGroup *self, size_t size, bool self_clear)
 
     self->verts = calloc(size, sizeof(SGVec3d));
     self->texs = calloc(size, sizeof(SGVec2f));
+    self->indices = calloc(size, sizeof(GLushort));
     self->n_vertices = size;
     self->sbound.radius = -1.0;
 
@@ -118,6 +119,15 @@ Mesh *mesh_prepare(Mesh *self)
             GL_ARRAY_BUFFER,
             group->n_vertices*sizeof(SGVec2f),
             group->texs,
+            GL_STATIC_DRAW
+        );
+
+        glGenBuffers(1, &(group->element_buffer));
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->element_buffer);
+        glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER, 
+            group->n_vertices*sizeof(GLfloat), 
+            group->indices, 
             GL_STATIC_DRAW
         );
     }
@@ -212,6 +222,9 @@ Mesh *load_terrain(const char *filename)
                     rv->groups[g_idx].verts[vidx].x = vert.x;
                     rv->groups[g_idx].verts[vidx].y = vert.y;
                     rv->groups[g_idx].verts[vidx].z = vert.z;
+                    
+                    rv->groups[g_idx].indices[vidx] = vidx;
+
                     sg_sphered_expand_by(&(rv->groups[g_idx].sbound), &vert);
 
                     vidx++;
@@ -223,6 +236,7 @@ Mesh *load_terrain(const char *filename)
             end = start + 1;
         }
     }
+    printf("Done loading terrain\n");
     return rv;
 }
 
@@ -258,7 +272,11 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords)
             (void*)0
         );
 
-        glDrawArrays(GL_TRIANGLES, 0, group->n_vertices); // 12*3 indices starting at 0 -> 12 triangles
+//        glDrawArrays(GL_TRIANGLES, 0, group->n_vertices); // 12*3 indices starting at 0 -> 12 triangles
+        
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->element_buffer);
+        glDrawElements(GL_TRIANGLES, group->n_vertices, GL_UNSIGNED_SHORT, 0);
+
         glDisableVertexAttribArray(position);
         glDisableVertexAttribArray(texcoords);
     }

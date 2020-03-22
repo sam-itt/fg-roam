@@ -14,6 +14,8 @@ typedef struct{
     SGVec3d *verts;
     SGVec2f *texs;
 
+    GLushort *indices;
+
     /*Buffers: OpenGL handles*/
     GLuint element_buffer;
     GLuint vertex_buffer;
