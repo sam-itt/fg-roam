@@ -21,6 +21,8 @@ typedef struct {
     float z;
 } SGVec3f;
 
+#define sg_vec_equals(a, b) ((a)->x == (b)->x) && ((a)->y == (b)->y) && ((a)->z == (b)->z)
+
 typedef struct {
     float x;
     float y;

@@ -12,21 +12,43 @@ typedef struct{
     GLuint n_vertices;
 
     SGVec3d *verts;
+    size_t nverts; /*Number of elements in the vector*/
+    size_t vert_esize; /*We have room for esize elements (i.e size NOT in bytes)*/
+
     SGVec2f *texs;
 
-    GLushort *indices;
+    GLuint *indices;
+    size_t n_indices;
 
     /*Buffers: OpenGL handles*/
     GLuint element_buffer;
     GLuint vertex_buffer;
     GLuint texs_buffer;
+
+    GHashTable *global_lookup;
 }VGroup;
 
 
 typedef struct{
+    GLuint n_vertices;
     GLuint n_groups;
-   
+
+    SGVec3d *verts;
+    size_t nverts; /*Number of elements in the vector*/
+    size_t vert_esize; /*We have room for esize elements (i.e size NOT in bytes)*/
+
+    SGVec2f *texs;
+
     VGroup *groups;
+
+    GLuint vertex_buffer;
+    GLuint texs_buffer;
+
+    SGBinObject *terrain;
+
+    GHashTable *stats;
+    GHashTable *global_lookup;
+    size_t higher_indice_seen;
 }Mesh;
 
 
@@ -39,4 +61,7 @@ void mesh_render(Mesh *self, SGVec3d *epos, double vis);
 void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords);
 
 Mesh *mesh_prepare(Mesh *self);
+
+void mesh_dump_buffer(Mesh *self);
+
 #endif

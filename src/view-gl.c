@@ -257,7 +257,6 @@ int main(int argc, char **argv)
             acc = 0;
         }
         last_ticks = ticks;
-        done = true;
     }
     shader_free(shader);
     tile_manager_shutdown();
