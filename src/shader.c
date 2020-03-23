@@ -38,6 +38,7 @@ void shader_free(Shader *self)
         free(self->vertex_src);
     if(self->fragment_src)
         free(self->fragment_src);
+    free(self);
 }
 
 void shader_cleanup(Shader *self)
@@ -119,6 +120,7 @@ bool shader_compile_file(GLuint *shader, GLenum type, const char *filename)
 
     glCompileShader(*shader);
     glGetShaderiv(*shader, GL_COMPILE_STATUS, &rv);
+    free(content);
 
     if(rv != GL_TRUE){ /*Compile failed*/
         shader_show_compile_error(*shader, filename);

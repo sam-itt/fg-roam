@@ -16,12 +16,30 @@ static TileManager *tile_manager_new(void)
     return rv;
 }
 
+static void tile_manager_free(TileManager *self)
+{
+    for(int i = 0; i < MAX_BUCKETS; i++){
+        if(self->buckets[i])
+            sg_bucket_free(self->buckets[i]);
+    }
+    free(self);
+}
+
 TileManager *tile_manager_get_instance(void)
 {
     if(!instance){
         instance = tile_manager_new();
     }
     return instance;
+}
+
+void tile_manager_shutdown(void)
+{
+    if(instance){
+       tile_manager_free(instance);
+       instance = NULL;
+    }
+
 }
 
 bool tile_manager_add_tile(TileManager *self, SGBucket *bucket)

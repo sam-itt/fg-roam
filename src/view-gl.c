@@ -21,7 +21,6 @@
 #include "tile-manager.h"
 
 Plane *plane = NULL;
-SGBucket *bucket = NULL;
 Mesh *mesh = NULL;
 Shader *shader = NULL;
 
@@ -258,9 +257,11 @@ int main(int argc, char **argv)
             acc = 0;
         }
         last_ticks = ticks;
+        done = true;
     }
-
-    sg_bucket_free(bucket);
+    shader_free(shader);
+    tile_manager_shutdown();
+    free(plane);
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();

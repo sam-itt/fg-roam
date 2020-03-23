@@ -68,10 +68,11 @@ void mesh_free(Mesh *self)
 {
     VGroup *group;
 
-    for(int i = 0; i < self->n_groups; i++){
+    for(GLuint i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
         free(group->verts);
         free(group->texs);
+        free(group->indices);
     }
     free(self->groups);
     free(self);
@@ -236,6 +237,7 @@ Mesh *load_terrain(const char *filename)
             end = start + 1;
         }
     }
+    sg_bin_object_free(terrain);
     printf("Done loading terrain\n");
     return rv;
 }

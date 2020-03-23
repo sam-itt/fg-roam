@@ -95,6 +95,7 @@ typedef std::vector < vai_list > group_vai_list;
 
 
 SGBinObject *sg_bin_object_new(void);
+void sg_bin_object_free(SGBinObject *self);
 bool sg_bin_object_write_obj(SGBinObject *self, const char *filename);
 void sg_bin_object_load(SGBinObject *self, const char *filename);
 

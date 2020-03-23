@@ -419,6 +419,225 @@ SGBinObject *sg_bin_object_new(void)
     return rv;
 }
 
+void sg_bin_object_free(SGBinObject *self)
+{
+
+    g_array_free(self->wgs84_nodes, TRUE);
+    g_array_free(self->colors, TRUE);
+    g_array_free(self->normals, TRUE);
+    g_array_free(self->texcoords, TRUE);
+    g_array_free(self->va_flt, TRUE);
+    g_array_free(self->va_int, TRUE);
+
+    /*Points*/
+    // points vertex index: PtrArray of int GArray
+    for(guint i = 0; i < self->pts_v->len; i++){
+        GArray *a = g_ptr_array_index(self->pts_v, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->pts_v, TRUE);
+
+    // points normal index: PtrArray of int GArray
+    for(guint i = 0; i < self->pts_n->len; i++){
+        GArray *a = g_ptr_array_index(self->pts_n, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->pts_n, TRUE);
+
+    // points color index: PtrArray of int GArray
+    for(guint i = 0; i < self->pts_c->len; i++){
+        GArray *a = g_ptr_array_index(self->pts_c, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->pts_c, TRUE);
+
+    // points texture coordinates ( up to 4 sets ): PtrArray of sized PtrArray of int GArray
+    for(guint i = 0; i < self->pts_tcs->len; i++){
+        GPtrArray *p_tcs = g_ptr_array_index(self->pts_tcs, i);
+        for(guint j = 0; j < p_tcs->len; j++){
+            GArray *a = g_ptr_array_index(p_tcs, j);
+            g_array_free(a, TRUE);
+        }
+        g_ptr_array_free(p_tcs, TRUE);
+    }
+    g_ptr_array_free(self->pts_tcs, TRUE);
+
+    // points vertex attributes ( up to 8 sets ): PtrArray of sized PtrArray of int GArray
+    for(guint i = 0; i < self->pts_vas->len; i++){
+        GPtrArray *p_vas = g_ptr_array_index(self->pts_vas, i);
+        for(guint j = 0; j < p_vas->len; j++){
+            GArray *a = g_ptr_array_index(p_vas, j);
+            g_array_free(a, TRUE);
+        }
+        g_ptr_array_free(p_vas, TRUE);
+    }
+    g_ptr_array_free(self->pts_vas, TRUE);
+
+    // points materials: GPtrArray of char *
+    for(guint i = 0; i < self->pt_materials->len; i++){
+        char *str = g_ptr_array_index(self->pt_materials, i);
+        g_free(str);
+    }
+    g_ptr_array_free(self->pt_materials, TRUE);
+
+    /*Triangles*/
+    // triangles vertex index: PtrArray of int GArray
+    for(guint i = 0; i < self->tris_v->len; i++){
+        GArray *a = g_ptr_array_index(self->tris_v, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->tris_v, TRUE);
+
+    // triangles normal index: PtrArray of int GArray
+    for(guint i = 0; i < self->tris_n->len; i++){
+        GArray *a = g_ptr_array_index(self->tris_n, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->tris_n, TRUE);
+
+    // triangles color index: PtrArray of int GArray
+    for(guint i = 0; i < self->tris_c->len; i++){
+        GArray *a = g_ptr_array_index(self->tris_c, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->tris_c, TRUE);
+
+    // triangles texture coordinates ( up to 4 sets ): PtrArray of sized PtrArray of int GArray
+    for(guint i = 0; i < self->tris_tcs->len; i++){
+        GPtrArray *t_tcs = g_ptr_array_index(self->tris_tcs, i);
+        for(guint j = 0; j < t_tcs->len; j++){
+            GArray *a = g_ptr_array_index(t_tcs, j);
+            g_array_free(a, TRUE);
+        }
+        g_ptr_array_free(t_tcs, TRUE);
+    }
+    g_ptr_array_free(self->tris_tcs, TRUE);
+
+    // triangles vertex attributes ( up to 8 sets ): PtrArray of sized PtrArray of int GArray
+    for(guint i = 0; i < self->tris_vas->len; i++){
+        GPtrArray *t_vas = g_ptr_array_index(self->tris_vas, i);
+        for(guint j = 0; j < t_vas->len; j++){
+            GArray *a = g_ptr_array_index(t_vas, j);
+            g_array_free(a, TRUE);
+        }
+        g_ptr_array_free(t_vas, TRUE);
+    }
+    g_ptr_array_free(self->tris_vas, TRUE);
+
+    // triangles materials: GPtrArray of char *
+    for(guint i = 0; i < self->tri_materials->len; i++){
+        char *str = g_ptr_array_index(self->tri_materials, i);
+        g_free(str);
+    }
+    g_ptr_array_free(self->tri_materials, TRUE);
+
+    /*Triangle strips*/
+     // strips vertex index: PtrArray of int GArray
+    for(guint i = 0; i < self->strips_v->len; i++){
+        GArray *a = g_ptr_array_index(self->strips_v, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->strips_v, TRUE);
+
+    // strips normal index: PtrArray of int GArray
+    for(guint i = 0; i < self->strips_n->len; i++){
+        GArray *a = g_ptr_array_index(self->strips_n, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->strips_n, TRUE);
+
+    // strips color index: PtrArray of int GArray
+    for(guint i = 0; i < self->strips_c->len; i++){
+        GArray *a = g_ptr_array_index(self->strips_c, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->strips_c, TRUE);
+
+    // strips texture coordinates ( up to 4 sets ): PtrArray of sized PtrArray of int GArray
+    for(guint i = 0; i < self->strips_tcs->len; i++){
+        GPtrArray *s_tcs = g_ptr_array_index(self->strips_tcs, i);
+        for(guint j = 0; j < s_tcs->len; j++){
+            GArray *a = g_ptr_array_index(s_tcs, j);
+            g_array_free(a, TRUE);
+        }
+        g_ptr_array_free(s_tcs, TRUE);
+    }
+    g_ptr_array_free(self->strips_tcs, TRUE);
+
+    // strips vertex attributes ( up to 8 sets ): PtrArray of sized PtrArray of int GArray
+    for(guint i = 0; i < self->strips_vas->len; i++){
+        GPtrArray *s_vas = g_ptr_array_index(self->strips_vas, i);
+        for(guint j = 0; j < s_vas->len; j++){
+            GArray *a = g_ptr_array_index(s_vas, j);
+            g_array_free(a, TRUE);
+        }
+        g_ptr_array_free(s_vas, TRUE);
+    }
+    g_ptr_array_free(self->strips_vas, TRUE);
+
+    // strips materials: GPtrArray of char *
+    for(guint i = 0; i < self->strip_materials->len; i++){
+        char *str = g_ptr_array_index(self->strip_materials, i);
+        g_free(str);
+    }
+    g_ptr_array_free(self->strip_materials, TRUE);
+
+    /*Triangle fans*/
+     // fans vertex index: PtrArray of int GArray
+    for(guint i = 0; i < self->fans_v->len; i++){
+        GArray *a = g_ptr_array_index(self->fans_v, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->fans_v, TRUE);
+
+    // fans normal index: PtrArray of int GArray
+    for(guint i = 0; i < self->fans_n->len; i++){
+        GArray *a = g_ptr_array_index(self->fans_n, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->fans_n, TRUE);
+
+    // fans color index: PtrArray of int GArray
+    for(guint i = 0; i < self->fans_c->len; i++){
+        GArray *a = g_ptr_array_index(self->fans_c, i);
+        g_array_free(a, TRUE);
+    }
+    g_ptr_array_free(self->fans_c, TRUE);
+
+    // fans texture coordinates ( up to 4 sets ): PtrArray of sized PtrArray of int GArray
+    for(guint i = 0; i < self->fans_tcs->len; i++){
+        GPtrArray *f_tcs = g_ptr_array_index(self->fans_tcs, i);
+        for(guint j = 0; j < f_tcs->len; j++){
+            GArray *a = g_ptr_array_index(f_tcs, j);
+            g_array_free(a, TRUE);
+        }
+        g_ptr_array_free(f_tcs, TRUE);
+    }
+    g_ptr_array_free(self->fans_tcs, TRUE);
+
+    // fans vertex attributes ( up to 8 sets ): PtrArray of sized PtrArray of int GArray
+    for(guint i = 0; i < self->fans_vas->len; i++){
+        GPtrArray *f_vas = g_ptr_array_index(self->fans_vas, i);
+        for(guint j = 0; j < f_vas->len; j++){
+            GArray *a = g_ptr_array_index(f_vas, j);
+            g_array_free(a, TRUE);
+        }
+        g_ptr_array_free(f_vas, TRUE);
+    }
+    g_ptr_array_free(self->fans_vas, TRUE);
+
+    // fans materials: GPtrArray of char *
+    for(guint i = 0; i < self->fan_materials->len; i++){
+        char *str = g_ptr_array_index(self->fan_materials, i);
+        g_free(str);
+    }
+    g_ptr_array_free(self->fan_materials, TRUE);
+
+    g_free(self);
+}
+
+
+
 void sg_bin_object_read_properties(gzFile fp, int nproperties)
 {
     SGSimpleBuffer *buf;
@@ -660,8 +879,23 @@ void sg_bin_object_read_object(SGBinObject *self, gzFile fp,
             g_ptr_array_add(texCoords, tcs);
             g_ptr_array_add(vertexAttribs, vas);
             g_ptr_array_add(materials, g_strdup(material));
+        }else{
+            g_array_free(vs, TRUE);
+            g_array_free(ns, TRUE);
+            g_array_free(cs, TRUE);
+            for(int z = 0; z < MAX_TC_SETS; z++){
+                GArray *a = g_ptr_array_index(tcs, z);
+                g_array_free(a, TRUE);
+            }
+            g_ptr_array_free(tcs, TRUE);
+            for(int z = 0; z < MAX_VAS; z++){
+                GArray *a = g_ptr_array_index(vas, z);
+                g_array_free(a, TRUE);
+            }
+            g_ptr_array_free(vas, TRUE);
         }
     } // of element iteration
+    sg_simple_buffer_free(buf);
 }
 
 

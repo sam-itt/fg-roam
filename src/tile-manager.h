@@ -12,6 +12,7 @@ typedef struct{
 
 
 TileManager *tile_manager_get_instance(void);
+void tile_manager_shutdown(void);
 
 
 SGBucket **tile_manager_get_tiles(TileManager *self, double lat, double lon, double vis);
