@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -15,8 +16,6 @@
 #include "texture.h"
 #include "misc.h"
 
-#define OPTIMIZE_INDICES 1
-#define GROUP_VERTICES 1
 
 #if 0
 VGroup *vgroup_new(size_t size)
@@ -40,19 +39,36 @@ VGroup *vgroup_init(VGroup *self, size_t size, bool self_clear)
     self->vert_esize = size;
     self->verts = calloc(self->vert_esize, sizeof(SGVec3d));
     self->texs = calloc(size, sizeof(SGVec2f));
-    self->indices = calloc(size, sizeof(GLuint));
+    self->indices = calloc(size, sizeof(indice_t));
 //    printf("allocated %d indices at %p\n",size,self->indices);
     self->n_vertices = size;
-    self->sbound.radius = -1.0;
 
     self->global_lookup = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
 
     return self;
 }
 
+void vgroup_dispose(VGroup *self)
+{
+    free(self->verts);
+    free(self->texs);
+    free(self->indices);
+    g_hash_table_unref(self->global_lookup);
+}
 
+size_t vgroup_get_size(VGroup *self, bool data_only)
+{
+    size_t rv = 0;
 
-Mesh *mesh_new(size_t size, GLuint nverts )
+    rv += sizeof(SGVec3d) * self->vert_esize;
+    rv += sizeof(SGVec2f) * self->vert_esize;
+    rv += sizeof(indice_t) * self->n_vertices;
+    if(!data_only)
+        rv += sizeof(VGroup);
+    return rv;
+}
+
+Mesh *mesh_new(size_t size)
 {
     Mesh *rv;
     rv = calloc(1, sizeof(Mesh));
@@ -60,15 +76,6 @@ Mesh *mesh_new(size_t size, GLuint nverts )
         rv->groups = calloc(size, sizeof(VGroup));
         rv->n_groups = size;
 
-        rv->vert_esize = nverts;
-        rv->nverts = nverts;
-        rv->verts = calloc(rv->nverts, sizeof(SGVec3d));
-        rv->texs = calloc(rv->nverts, sizeof(SGVec2f));
-
-        rv->n_vertices = nverts;
-
-        rv->stats = g_hash_table_new_full(g_str_hash, g_str_equal,g_free, (GDestroyNotify)g_array_unref);
-        rv->global_lookup = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
     }
     return rv;
 }
@@ -89,16 +96,9 @@ void mesh_free(Mesh *self)
 
     for(GLuint i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
-        free(group->verts);
-        free(group->texs);
-        free(group->indices);
-        g_hash_table_unref(group->global_lookup);
+        vgroup_dispose(group);
     }
     free(self->groups);
-    free(self->verts);
-    free(self->texs);
-    g_hash_table_unref(self->stats);
-    g_hash_table_unref(self->global_lookup);
     free(self);
 }
 
@@ -109,24 +109,9 @@ size_t mesh_get_size(Mesh *self, bool data_only)
 
     rv = 0;
 
-#if !GROUP_VERTICES
-    rv += sizeof(SGVec3d)*self->nverts;
-    rv += sizeof(SGVec2f)*self->nverts;
-#endif
     for(GLuint i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
-        if(!data_only)
-           rv += sizeof(VGroup);
-#if GROUP_VERTICES
-#if OPTIMIZE_INDICES
-        rv += sizeof(SGVec3d) * group->nverts; //verts
-        rv += sizeof(SGVec2f) * group->nverts; //tex
-#else
-        rv += sizeof(SGVec3d) * group->n_vertices; //verts
-        rv += sizeof(SGVec2f) * group->n_vertices; //tex
-#endif
-#endif
-        rv += sizeof(GLuint) * group->n_vertices;
+        rv += vgroup_get_size(group, data_only);
     }
 
     if(!data_only)
@@ -134,72 +119,15 @@ size_t mesh_get_size(Mesh *self, bool data_only)
     return rv;
 }
 
-void mesh_register_vertex_use(Mesh *self, guint group, guint pos_idx, guint tex_idx)
-{
-    GArray *array;
-    gchar *key;
-    guint current;
-    bool nofree = false;
-
-    key = g_strdup_printf("%d-%d",pos_idx,tex_idx);
-    array = g_hash_table_lookup(self->stats,key);
-    if(!array){
-        array = g_array_sized_new(FALSE, TRUE, sizeof(guint), self->n_groups);
-        g_hash_table_insert(self->stats, key, array);
-        nofree = true;
-    }
-    current = g_array_index(array, guint, group);
-    current++;
-    g_array_insert_val(array, group, current);
-    if(!nofree)
-        g_free(key);
-}
-
-void dofun( gchar *key, GArray *value, Mesh *self)
-{
-    int usage_count = 0;
-    for(GLuint i = 0; i < self->n_groups; i++){
-        guint guse;
-        guse = g_array_index(value, guint, i);
-        if(guse >= 1)
-            usage_count++;
-    }
-    if(usage_count > 1){
-        printf("Vertex %s referenced by %d groups\n", key, usage_count);
-    }
-}
-
-void mesh_show_vertex_use(Mesh *self)
-{
-    g_hash_table_foreach(self->stats,(GHFunc) dofun, self);
-}
 
 Mesh *mesh_prepare(Mesh *self)
 {
 
     VGroup *group;
 
-#if !GROUP_VERTICES
-    glGenBuffers(1, &(self->vertex_buffer));
-    glBindBuffer(GL_ARRAY_BUFFER, self->vertex_buffer);
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        self->nverts*sizeof(SGVec3d),
-        self->verts,
-        GL_STATIC_DRAW
-    );
-    glGenBuffers(1, &(self->texs_buffer));
-    glBindBuffer(GL_ARRAY_BUFFER, self->texs_buffer);
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        self->nverts*sizeof(SGVec2f),
-        self->texs,
-        GL_STATIC_DRAW
-    );
-#endif
     for(unsigned int i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
-#if GROUP_VERTICES
+
         glGenBuffers(1, &(group->vertex_buffer));
         glBindBuffer(GL_ARRAY_BUFFER, group->vertex_buffer);
         glBufferData(
@@ -217,12 +145,12 @@ Mesh *mesh_prepare(Mesh *self)
             group->texs,
             GL_STATIC_DRAW
         );
-#endif
+
         glGenBuffers(1, &(group->element_buffer));
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->element_buffer);
         glBufferData(
             GL_ELEMENT_ARRAY_BUFFER, 
-            group->n_vertices*sizeof(GLuint),
+            group->n_vertices*sizeof(indice_t),
             group->indices, 
             GL_STATIC_DRAW
         );
@@ -245,11 +173,10 @@ void mesh_dump_buffer(Mesh *self)
         group = &(self->groups[i]);
         printf("Group %d/%d %d vertices\n",i ,self->n_groups-1, group->n_vertices);
         for(GLuint j = 0; j < group->n_vertices; j++){
-#if GROUP_VERTICES
-            printf("#%d: %0.5f %0.5f %0.5f\n",j, group->verts[group->indices[j]].x, group->verts[group->indices[j]].y, group->verts[group->indices[j]].z);
-#else
-            printf("#%d: %0.5f %0.5f %0.5f\n",j, self->verts[group->indices[j]].x, self->verts[group->indices[j]].y, self->verts[group->indices[j]].z);
-#endif
+            printf("#%d: %0.5f %0.5f %0.5f\n",
+                   j, group->verts[group->indices[j]].x, 
+                   group->verts[group->indices[j]].y, 
+                   group->verts[group->indices[j]].z);
         }
 
     }
@@ -290,39 +217,6 @@ size_t vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex, int global_idx)
 }
 
 
-size_t mesh_add_vertex(Mesh *self, SGVec3d *v, SGVec2f *tex, int global_idx)
-{
-    size_t rv = 0;
-    gpointer existing;
-
-    existing = g_hash_table_lookup(self->global_lookup, GINT_TO_POINTER(global_idx));
-    if(existing){
-        rv = GPOINTER_TO_UINT(existing);
-        if(self->texs[rv].x == tex->x && self->texs[rv].y == tex->y)
-            return rv;
-    }
-
-    if(self->nverts == self->vert_esize){
-        self->vert_esize += 16;
-        self->verts = reallocarray(self->verts,  self->vert_esize, sizeof(SGVec3d));
-        self->texs = reallocarray(self->texs,  self->vert_esize, sizeof(SGVec2f));
-        if(!self->verts){
-            printf("Realloc failure\n");
-            exit(-1);
-        }
-    }
-    /*If we get here, we need to add v into the array*/
-    rv = self->nverts;
-    self->verts[rv] = (SGVec3d){v->x,v->y,v->z};
-    self->texs[rv].x = tex->x;
-    self->texs[rv].y = tex->y;
-    self->nverts++;
-
-    g_hash_table_insert(self->global_lookup, GINT_TO_POINTER(global_idx), GUINT_TO_POINTER(rv));
-
-    return(rv);
-}
-
 
 Mesh *load_terrain(const char *filename)
 {
@@ -358,7 +252,7 @@ Mesh *load_terrain(const char *filename)
         }
 
 
-        rv = mesh_new(ngroups, terrain->wgs84_nodes->len);
+        rv = mesh_new(ngroups);
         size_t g_idx = 0;
         start = 0;
         end = 1;
@@ -395,6 +289,7 @@ Mesh *load_terrain(const char *filename)
                     printf("Triangle %d has %d colors!\n",i,tri_c->len);
                 for (guint  j = 0; j < tri_v->len; ++j ) {
                     int a, b;
+                    size_t idx;
                     GArray *ttcs = g_ptr_array_index(tri_tcs,0);
                     a = g_array_index(tri_v, int, j);
                     b = g_array_index(ttcs, int, j);
@@ -404,35 +299,19 @@ Mesh *load_terrain(const char *filename)
                     vert.y += terrain->gbs_center.y;
                     vert.z += terrain->gbs_center.z;
 
-//                    mesh_register_vertex_use(rv, g_idx, a, b);
-#if GROUP_VERTICES
-#if OPTIMIZE_INDICES
-                    rv->groups[g_idx].indices[vidx] = vgroup_add_vertex(&(rv->groups[g_idx]), &vert, &tex,a);
-#else
-                    rv->groups[g_idx].texs[vidx].x = tex.x;
-                    rv->groups[g_idx].texs[vidx].y = tex.y;
-
-                    rv->groups[g_idx].verts[vidx].x = vert.x;
-                    rv->groups[g_idx].verts[vidx].y = vert.y;
-                    rv->groups[g_idx].verts[vidx].z = vert.z;
-
-                    rv->groups[g_idx].indices[vidx] = vidx;
-#endif
-#else
-                    rv->groups[g_idx].indices[vidx] = mesh_add_vertex(rv, &vert , &tex, a);
-#endif
-                    if(rv->groups[g_idx].indices[vidx] > rv->higher_indice_seen)
-                        rv->higher_indice_seen = rv->groups[g_idx].indices[vidx];
-
-                    sg_sphered_expand_by(&(rv->groups[g_idx].sbound), &vert);
+                    idx = vgroup_add_vertex(&(rv->groups[g_idx]), &vert, &tex,a);
+                    if(idx > INDICE_MAX){
+                        printf(
+                            "WARNING: Terrain %s Group %d has indice value %d greather than "
+                            "what can be stored with current sizeof(indice_t)(%d), Undefined behavior from now\n",
+                            filename, g_idx, idx, sizeof(indice_t));
+                    }
+                    rv->groups[g_idx].indices[vidx] = idx;
 
                     vidx++;
                 }
             }
-            printf("Group %d, final number of vertices %d vs %d\n", g_idx, rv->groups[g_idx].nverts,rv->groups[g_idx].n_vertices);
-#if !OPTIMIZE_INDICES
-            rv->groups[g_idx].nverts = rv->groups[g_idx].n_vertices;
-#endif
+//            printf("Group %d, final number of vertices %d vs %d\n", g_idx, rv->groups[g_idx].nverts,rv->groups[g_idx].n_vertices);
             g_idx++;
 
             start = end;
@@ -442,7 +321,6 @@ Mesh *load_terrain(const char *filename)
 //    rv->terrain = terrain;
     sg_bin_object_free(terrain);
     printf("Done loading terrain\n");
-    printf("Higher indice seen: %d\n", rv->higher_indice_seen);
     return rv;
 }
 
@@ -452,34 +330,11 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords)
 
     glPushMatrix();
 
-#if !GROUP_VERTICES
-    glEnableVertexAttribArray(position);
-    glBindBuffer(GL_ARRAY_BUFFER, self->vertex_buffer);
-    glVertexAttribPointer(
-        position,
-        3,
-        GL_DOUBLE,
-        GL_FALSE,
-        0, /*no need to specify stride on single attribute vectors*/
-        (void*)0
-    );
-
-    glEnableVertexAttribArray(texcoords);
-    glBindBuffer(GL_ARRAY_BUFFER, self->texs_buffer);
-    glVertexAttribPointer(
-        texcoords,
-        2,
-        GL_FLOAT,
-        GL_FALSE,
-        0, /*As above*/
-        (void*)0
-    );
-#endif
     for(GLuint i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
         glActiveTexture(GL_TEXTURE0 );
         glBindTexture(GL_TEXTURE_2D, group->tex_id);
-#if GROUP_VERTICES
+ 
         glEnableVertexAttribArray(position);
         glBindBuffer(GL_ARRAY_BUFFER, group->vertex_buffer);
         glVertexAttribPointer(
@@ -501,20 +356,16 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords)
             0, /*As above*/
             (void*)0
         );
-#endif
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->element_buffer);
-        glDrawElements(GL_TRIANGLES, group->n_vertices, GL_UNSIGNED_INT, 0);
-#if GROUP_VERTICES
+        glDrawElements(GL_TRIANGLES, group->n_vertices, INDICE_TYPE, 0);
+
         glDisableVertexAttribArray(position);
         glDisableVertexAttribArray(texcoords);
-#endif
     }
 //    printf("Mesh %p rendered\n",self);
-    glDisableVertexAttribArray(position);
-    glDisableVertexAttribArray(texcoords);
     glPopMatrix();
 }
-
 
 
 void mesh_render(Mesh *self, SGVec3d *epos, double vis)
