@@ -2,7 +2,7 @@ TOP_SRCDIR=..
 SRCDIR=$(TOP_SRCDIR)/src
 
 CC=gcc
-CFLAGS=-g3 -O0 `pkg-config glib-2.0 sdl2 SDL2_image --cflags` -I$(SRCDIR)
+CFLAGS=-g3 -O0 `pkg-config glib-2.0 sdl2 SDL2_image --cflags` -I$(SRCDIR) -I$(TOP_SRCDIR)/lib/cglm/include/ -DUSE_OGL_MTX=0
 LDFLAGS=-lz -lm `pkg-config glib-2.0 sdl2 SDL2_image --libs` -lGL -lGLU
 EXEC=view-gl
 SRC= $(wildcard $(SRCDIR)/*.c)

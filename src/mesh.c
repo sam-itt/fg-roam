@@ -328,8 +328,6 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords)
 {
     VGroup *group;
 
-    glPushMatrix();
-
     for(GLuint i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
         glActiveTexture(GL_TEXTURE0 );
@@ -364,43 +362,5 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords)
         glDisableVertexAttribArray(texcoords);
     }
 //    printf("Mesh %p rendered\n",self);
-    glPopMatrix();
-}
-
-
-void mesh_render(Mesh *self, SGVec3d *epos, double vis)
-{
-    VGroup *group;
-    double vis2;
-
-    vis2 = vis*vis;
-    glPushMatrix();
-    for(int i = 0; i < self->n_groups; i++){
-        group = &(self->groups[i]);
-        glBindTexture(GL_TEXTURE_2D, group->tex_id);
-        glBegin(GL_TRIANGLES);
-#ifdef ENABLE_CENTRIOD_CULLING
-        int tidx = 0;
-        for(int j = 0; j < group->n_vertices; j+=3, tidx++){
-            for(int k = 0; k < 3; k++){
-                int idx = j+k;
-                glTexCoord2f(group->texs[idx].x, group->texs[idx].y);
-                glVertex3f(group->verts[idx].x,
-                           group->verts[idx].y,
-                           group->verts[idx].z);
-            }
-        }
-#else
-        for(int j = 0; j < group->n_vertices; j++){
-            glTexCoord2f(group->texs[j].x, group->texs[j].y);
-            glVertex3f(group->verts[j].x,
-                       group->verts[j].y,
-                       group->verts[j].z);
-        }
-
-#endif
-        glEnd();
-    }
-    glPopMatrix();
 }
 

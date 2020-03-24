@@ -58,7 +58,7 @@ Mesh *load_terrain(const char *filename);
 void mesh_free(Mesh *self);
 
 size_t mesh_get_size(Mesh *self, bool data_only);
-void mesh_render(Mesh *self, SGVec3d *epos, double vis);
+//void mesh_render(Mesh *self, SGVec3d *epos, double vis);
 void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords);
 
 Mesh *mesh_prepare(Mesh *self);

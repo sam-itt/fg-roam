@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <GL/glut.h>
 
+#include <cglm/cglm.h>
+
 typedef struct{
     GLfloat X; 
     GLfloat Y; 
@@ -23,6 +25,8 @@ typedef struct{
     GLfloat vX; 
     GLfloat vY; 
     GLfloat vZ;
+
+    mat4 view;
 } Plane;
 
 void PlaneView(Plane *p);
