@@ -17,18 +17,6 @@ void PlaneView(Plane *p)
     p->yaw += p->vyaw;
 
 
-#if USE_OGL_MTX
-    // roll is rotation about the z axis 
-    glRotatef(p->roll, 0.0f, 0.0f, 1.0f);
-    // yaw, or heading, is rotation about the y axis 
-    glRotatef(p->yaw, 0.0f, 1.0f, 0.0f);
-    // pitch is rotation about the x axis 
-    glRotatef(p->pitch, 1.0f, 0.0f, 0.0f);
-    // move the plane to the plane’s world coordinates 
-    glTranslatef(-p->X, -p->Y, -p->Z);
-    // orientation
-   // printf("Screwing up\n");
-#else
     glm_mat4_identity(p->view);
     // roll is rotation about the z axis
     glm_rotate(p->view, glm_rad(p->roll), (vec3){0.0f, 0.0f, 1.0f});
@@ -39,7 +27,6 @@ void PlaneView(Plane *p)
 
     // move the plane to the plane’s world coordinates
     glm_translate(p->view, (vec3){-p->X, -p->Y, -p->Z});
-#endif
 }
 
 void plane_get_position(Plane *p, double *lat, double *lon, double *alt)

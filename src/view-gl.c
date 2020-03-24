@@ -216,14 +216,12 @@ int main(int argc, char **argv)
         printf("Cannot bind a_texcoords\n");
         exit(-1);
     }
-#if !USE_OGL_MTX
+
     u_mvpmtx = shader_get_uniform_location(shader, "mvp");
     if(u_mvpmtx < 0){
         printf("Cannot bind u_mvpmtx\n");
         exit(-1);
     }
-#endif
-
 
     mat4 projection_matrix;
     mat4 mvp;
@@ -245,26 +243,16 @@ int main(int argc, char **argv)
 
         glClearColor (1.0, 1.0, 1.0, 0.0);
         glClear (GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-#if USE_OGL_MTX
-        glMatrixMode (GL_PROJECTION);
-        glLoadIdentity ();
-        gluPerspective(60.0,800/600,1.0,1000.0);
 
-        glMatrixMode (GL_MODELVIEW);
-        glLoadIdentity ();
-#elif 0
-        glm_mat4_identity(projection_matrix);
-        glm_perspective(glm_rad(60.0f), 800.0/600.0, 1.0f, 1000.0f, projection_matrix);
-#endif
         glUseProgram(shader->program_id);
         glUniform1i(u_tex, 0);
 
         PlaneView(plane);
-#if !USE_OGL_MTX
+
         glm_mat4_identity(mvp);
         glm_mat4_mul(projection_matrix, plane->view, mvp);
         glUniformMatrix4fv(u_mvpmtx, 1, GL_FALSE, mvp[0]);
-#endif
+
         render(10000.0);
         SDL_GL_SwapWindow(window);
         nframes++;
