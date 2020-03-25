@@ -83,9 +83,9 @@ Mesh *mesh_new(size_t size)
 Mesh *mesh_new_from_file(const char *filename)
 {
     Mesh *rv;
-   rv = load_terrain(filename);
-
-    mesh_prepare(rv);
+    rv = load_terrain(filename);
+    if(rv)
+        mesh_prepare(rv);
     return rv;
 }
 
