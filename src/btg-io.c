@@ -852,16 +852,17 @@ void sg_bin_object_read_object(SGBinObject *self, gzFile fp,
             printf("Error reading element bytes");
         }
 
-        vs = g_array_new(FALSE, TRUE, sizeof(int));
-        ns = g_array_new(FALSE, TRUE, sizeof(int));
-        cs = g_array_new(FALSE, TRUE, sizeof(int));
+        size_t indices_size;
+        indices_size = (self->version >= 10) ? sizeof(int) : sizeof(uint16_t);
+        vs = g_array_new(FALSE, TRUE, indices_size);
+        ns = g_array_new(FALSE, TRUE, indices_size);
+        cs = g_array_new(FALSE, TRUE, indices_size);
         tcs = g_ptr_array_sized_new(MAX_TC_SETS);
         for(int z = 0; z < MAX_TC_SETS; z++)
-            g_ptr_array_add(tcs, g_array_new(FALSE, TRUE, sizeof(int)));
+            g_ptr_array_add(tcs, g_array_new(FALSE, TRUE, indices_size));
         vas = g_ptr_array_sized_new(MAX_VAS);
         for(int z = 0; z < MAX_VAS; z++)
-            g_ptr_array_add(vas, g_array_new(FALSE, TRUE, sizeof(int)));
-
+            g_ptr_array_add(vas, g_array_new(FALSE, TRUE, indices_size));
 
         if (self->version >= 10) {
 //            printf("Reading indices as 32-bits ints\n");
@@ -1160,7 +1161,7 @@ void sg_bin_object_load(SGBinObject *self, const char *filename)
 
 bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
 {
-    int i, j;
+    size_t i, j;
     FILE *fp;
 
     fp = fopen( filename, "w" );
@@ -1199,9 +1200,15 @@ bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
     for ( i = 0; i < self->wgs84_nodes->len; ++i ) {
         SGVec3d a = g_array_index(self->wgs84_nodes, SGVec3d , i);
 #if 1
-        SGVec3d p = (SGVec3d){ a.x - self->gbs_center.x, 
-                               a.y - self->gbs_center.y, 
+        SGVec3d p = (SGVec3d){ a.x - self->gbs_center.x,
+                               a.y - self->gbs_center.y,
                                a.z - self->gbs_center.z};
+
+        fprintf(fp,  "v %.5f %.5f %.5f\n", p.x, p.y, p.z );
+#elif 0
+        SGVec3d p = (SGVec3d){ a.x + self->gbs_center.x,
+                               a.y + self->gbs_center.y,
+                               a.z + self->gbs_center.z};
 
         fprintf(fp,  "v %.5f %.5f %.5f\n", p.x, p.y, p.z );
 #else
@@ -1229,8 +1236,8 @@ bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
     if ( self->tris_v->len != 0 ) {
         fprintf(fp, "# triangle groups\n");
 
-        int start = 0;
-        int end = 1;
+        guint start = 0;
+        guint end = 1;
         char *material;
         while ( start < self->tri_materials->len ) {
             // find next group
@@ -1251,7 +1258,11 @@ bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
             for ( i = start; i < end; ++i ) {
                 GArray *a = g_ptr_array_index(self->tris_v, i);
                 for ( j = 0; j < a->len; ++j ) {
-                    int idx = g_array_index(a, int, j); 
+                    int idx;
+                    if(self->version >= 10)
+                        idx = g_array_index(a, int, j);
+                    else
+                        idx = g_array_index(a, uint16_t, j);
                     SGVec3d tmp = g_array_index(self->wgs84_nodes, SGVec3d, idx);
                     sg_sphered_expand_by(&d, &tmp);
                 }
@@ -1274,8 +1285,13 @@ bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
                 for ( j = 0; j < tri_v->len; ++j ) {
                     int a, b;
                     GArray *ttcs = g_ptr_array_index(tri_tcs,0);
-                    a = g_array_index(tri_v, int, j);
-                    b = g_array_index(ttcs, int, j);
+                    if(self->version >= 10){
+                        a = g_array_index(tri_v, int, j);
+                        b = g_array_index(ttcs, int, j);
+                    }else{
+                        a = g_array_index(tri_v, uint16_t, j);
+                        b = g_array_index(ttcs, uint16_t, j);
+                    }
                     fprintf(fp, " %d/%d", a+1, b+1);
                 }
                 fprintf(fp, "\n");
@@ -1290,8 +1306,8 @@ bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
     if (self->strips_v->len != 0) {
         fprintf(fp, "# triangle strips\n");
 
-        int start = 0;
-        int end = 1;
+        guint start = 0;
+        guint end = 1;
         char *material;
         while ( start < self->strip_materials->len ) {
             // find next group
@@ -1312,7 +1328,11 @@ bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
             for ( i = start; i < end; ++i ) {
                 GArray *a = g_ptr_array_index(self->tris_v, i);
                 for ( j = 0; j < a->len; ++j ) {
-                    int idx = g_array_index(a, int, j); 
+                    int idx;
+                    if(self->version >= 10)
+                        idx = g_array_index(a, int, j);
+                    else
+                        idx = g_array_index(a, uint16_t, j);
                     SGVec3d tmp = g_array_index(self->wgs84_nodes, SGVec3d, idx);
                     sg_sphered_expand_by(&d, &tmp);
                 }
@@ -1335,8 +1355,13 @@ bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
                 for ( j = 0; j < strip_v->len; ++j ) {
                     int a, b;
                     GArray *stcs = g_ptr_array_index(strip_tcs,0);
-                    a = g_array_index(strip_v, int, j);
-                    b = g_array_index(stcs, int, j);
+                    if(self->version >= 10){
+                        a = g_array_index(strip_v, int, j);
+                        b = g_array_index(stcs, int, j);
+                    }else{
+                        a = g_array_index(strip_v, uint16_t, j);
+                        b = g_array_index(stcs, uint16_t, j);
+                    }
                     fprintf(fp, " %d/%d", a+1, b+1);
                 }
                 fprintf(fp, "\n");

@@ -291,8 +291,13 @@ Mesh *load_terrain(const char *filename)
                     int a, b;
                     size_t idx;
                     GArray *ttcs = g_ptr_array_index(tri_tcs,0);
-                    a = g_array_index(tri_v, int, j);
-                    b = g_array_index(ttcs, int, j);
+                    if(terrain->version >= 10){
+                        a = g_array_index(tri_v, int, j);
+                        b = g_array_index(ttcs, int, j);
+                    }else{
+                        a = g_array_index(tri_v, uint16_t, j);
+                        b = g_array_index(ttcs, uint16_t, j);
+                    }
                     SGVec3d vert = g_array_index(terrain->wgs84_nodes, SGVec3d, a);
                     SGVec2f tex = g_array_index(terrain->texcoords, SGVec2f, b);
                     vert.x += terrain->gbs_center.x;
