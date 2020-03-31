@@ -1,5 +1,6 @@
 #ifndef MISC_H
 #define MISC_H
+#include <stdio.h>
 
 #define KB_AMOUNT (1024.0)
 #define MB_AMOUNT (1024*1024.0)
@@ -15,6 +16,9 @@
 #define megabytes(bytes) (bytes*MB_FACTOR)
 #define gigabytes(bytes) (bytes*GB_FACTOR)
 #define terabytes(bytes) (bytes*TB_FACTOR)
+
+#define MSEC_TO_SEC(msecs) ((msecs)/1000.0)
+
 
 
 double normalize_periodicd(double min, double max, double value);

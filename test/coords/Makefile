@@ -2,7 +2,7 @@ TOP_SRCDIR=../..
 SRCDIR=$(TOP_SRCDIR)/src
 
 CC=gcc
-CFLAGS=-g3 -O0 `pkg-config glib-2.0 --cflags` -I$(SRCDIR)
+CFLAGS=-g3 -O0 `pkg-config glib-2.0 --cflags` -I$(SRCDIR) -I$(TOP_SRCDIR)/lib/cglm/include/
 LDFLAGS=-lz -lm `pkg-config glib-2.0 --libs`
 EXEC=test-coords
 SRC = $(SRCDIR)/geodesy.c

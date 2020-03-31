@@ -182,9 +182,9 @@ static double gc2gd (double flatgc, double altkm)
 /**
  * xyz vector to lat,lon,height
  *
- * <p>Returns a pointer to 3 doubles (lat,lng, alt). 
+ * <p>Returns a pointer to 3 doubles (lat,lng, alt).
  * Geodetic Latitude and longitude are in degrees, while altitude is in km.
- * Pointerer references local static memory, the caller must not 
+ * Pointerer references local static memory, the caller must not
  * free it.</p>
  *
  * @param xvec   xyz ECEF location
@@ -452,4 +452,257 @@ double *geo_bounding_box(double clat, double clon, double radius)
     rv[3] = clon + dlon; //up left longitude
     
     return rv;
+}
+
+/*Teta in rads*/
+
+/**
+ * Main equation from
+ * Using Rotations to Build Aerospace Coordinate Systems
+ * Don Koks (DSTO-TN-0640)
+ *
+ * @param n vector to rotate
+ * @param teta angle(IN RADIANS) of the rotation
+ * @param result resulting rotation matrix to be used to
+ *               apply the rotation
+ */
+void geo_mat3_rot(vec3 n, float teta, mat3 result)
+{
+    mat3 m2 = GLM_MAT3_IDENTITY_INIT;
+    mat3 nX = {
+        {0, n[2], -n[1]},
+        {-n[2], 0, n[0]},
+        {n[1], -n[0], 0}
+    };
+
+    /* Classic math representation
+     * n x nt :
+     * n[0]
+     * n[1] X n[0] n[1] n[2]
+     * n[2]
+     *
+     * n[0]*n[0]  n[0]*n[1]  n[0]*n[2]
+     * n[1]*n[0]  n[1]*n[1]  n[1]*n[2]
+     * n[2]*n[0]  n[2]*n[1]  n[2]*n[2]
+    */
+    /*Turned col major:*/
+    mat3 nnt = {
+        {n[0]*n[0], n[1]*n[0], n[2]*n[0]},
+        {n[0]*n[1], n[1]*n[1], n[2]*n[1]},
+        {n[0]*n[2], n[1]*n[2], n[2]*n[2]}
+    };
+
+
+    glm_mat3_scale(nnt, 1.0f - cosf(teta));
+    glm_mat3_scale(m2, cosf(teta));
+    glm_mat3_scale(nX, sinf(teta));
+
+    glm_mat3_zero(result);
+    glm_vec3_add(nnt[0], m2[0], result[0]);
+    glm_vec3_add(nnt[1], m2[1], result[1]);
+    glm_vec3_add(nnt[2], m2[2], result[2]);
+
+    glm_vec3_add(result[0], nX[0], result[0]);
+    glm_vec3_add(result[1], nX[1], result[1]);
+    glm_vec3_add(result[2], nX[2], result[2]);
+}
+
+
+void geo_get_ned(double lat, double lon, vec3 n, vec3 e, vec3 d)
+{
+    mat3 mtmp;
+
+    vec3 n0 = {0,0,1};
+    vec3 e0 = {0,1,0};
+    vec3 d0 = {-1,0,0};
+
+    vec3 n1, e1, d1;
+
+    /*Intermediate coords*/
+    glm_mat3_zero(mtmp);
+    geo_mat3_rot(n0, glm_rad(lon), mtmp);
+//    printf("rn0: \n");
+//    mat3_dump(mtmp);
+    glm_mat3_mulv(mtmp, n0, n1);
+//    printf("n1 :");
+//    vec3_dump(n1);
+    glm_mat3_mulv(mtmp, e0, e1);
+//    printf("e1 :");
+//    vec3_dump(e1);
+    glm_mat3_mulv(mtmp, d0, d1);
+//    printf("d1 :");
+//    vec3_dump(d1);
+
+
+
+    /*final coords*/
+    vec3 e1_neg;
+    glm_vec3_negate_to(e1, e1_neg);
+    glm_mat3_identity(mtmp);
+    geo_mat3_rot(e1_neg, glm_rad(lat), mtmp);
+    glm_mat3_mulv(mtmp, n1, n);
+    glm_mat3_mulv(mtmp, e1, e);
+    glm_mat3_mulv(mtmp, d1, d);
+}
+
+/**
+ * return: X, Y, Z, psi, teta, phi
+ * alt in meters
+ */
+const double *geo_llh_to_dis(double lat, double lon, float alt, float heading, float pitch, float roll)
+{
+    static double rv[6];
+    const double *pos;
+    double psi, theta, phi;
+    vec3 n,e,d;
+    vec3 x0,y0,z0;
+    vec3 x1,y1,z1;
+    vec3 x2,y2,z2;
+    vec3 x3,y3,z3;
+    mat3 mtmp;
+
+    pos = llhxyz(lat, lon, alt/1000.0);
+    rv[0] = pos[0];
+    rv[1] = pos[1];
+    rv[2] = pos[2];
+
+    geo_get_ned(lat, lon, n, e, d);
+    glm_vec3_copy(n, x0);
+    glm_vec3_copy(e, y0);
+    glm_vec3_copy(d, z0);
+
+    /*Heading*/
+    glm_mat3_zero(mtmp);
+    geo_mat3_rot(z0, glm_rad(heading), mtmp);
+//    printf("rz0: \n");
+//    mat3_dump(mtmp);
+    glm_mat3_mulv(mtmp, x0, x1);
+//    printf("x1 :");
+//    vec3_dump(x1);
+    glm_mat3_mulv(mtmp, y0, y1);
+//    printf("y1 :");
+//    vec3_dump(y1);
+    glm_mat3_mulv(mtmp, z0, z1);
+//    printf("z1 :");
+//    vec3_dump(z1);
+
+    /*pitch*/
+    glm_mat3_zero(mtmp);
+    geo_mat3_rot(y1, glm_rad(pitch), mtmp);
+//    printf("rzy1: \n");
+//    mat3_dump(mtmp);
+    glm_mat3_mulv(mtmp, x1, x2);
+//    printf("x2 :");
+//    vec3_dump(x2);
+    glm_mat3_mulv(mtmp, y1, y2);
+//    printf("y2 :");
+//    vec3_dump(y2);
+    glm_mat3_mulv(mtmp, z1, z2);
+//    printf("z2 :");
+//    vec3_dump(z2);
+
+    /*roll*/
+    glm_mat3_zero(mtmp);
+    geo_mat3_rot(x2, glm_rad(roll), mtmp);
+//    printf("rzx2: \n");
+//    mat3_dump(mtmp);
+    glm_mat3_mulv(mtmp, x2, x3);
+    printf("x3 :");
+    vec3_dump(x3);
+    glm_mat3_mulv(mtmp, y2, y3);
+    printf("y3 :");
+    vec3_dump(y3);
+    glm_mat3_mulv(mtmp, z2, z3);
+    printf("z3 :");
+    vec3_dump(z3);
+
+    glm_vec3_copy((vec3){1,0,0}, x0);
+    glm_vec3_copy((vec3){0,1,0}, y0);
+    glm_vec3_copy((vec3){0,0,1}, z0);
+/*
+
+    printf("Doing angles with:\n");
+    printf("x0 :");
+    vec3_dump(x0);
+    printf("y0 :");
+    vec3_dump(y0);
+    printf("z0 :");
+    vec3_dump(z0);
+    printf("x3 :");
+    vec3_dump(x3);
+    printf("y3 :");
+    vec3_dump(y3);
+    printf("z3 :");
+    vec3_dump(z3);
+-*/
+
+
+#if 0
+    psi = asin(glm_vec3_dot(x3,y0)/sqrt(glm_vec3_dot(x3,x0)*glm_vec3_dot(x3,x0) + glm_vec3_dot(x3,y0)*glm_vec3_dot(x3,y0)));
+    theta = asin(-1*glm_vec3_dot(x3,z0));
+    phi = asin(glm_vec3_dot(y3,z2));
+#else
+    psi = atan2(glm_vec3_dot(x3,y0), glm_vec3_dot(x3,x0));
+    theta = atan2(-1*glm_vec3_dot(x3,z0), sqrt(glm_vec3_dot(x3,x0)*glm_vec3_dot(x3,x0) + glm_vec3_dot(x3,y0)*glm_vec3_dot(x3,y0)));
+    phi = atan2(glm_vec3_dot(y3,z2), glm_vec3_dot(y3,y2));
+#endif
+    rv[3] = glm_deg(psi);
+    rv[4] = glm_deg(theta);
+    rv[5] =  glm_deg(phi);
+    printf("psi(roll): %0.1f,theta(yaw): %0.1f,phi(pitch): %0.1f\n",(psi),(theta),(phi));
+    return rv;
+}
+
+
+void vec3_dump(vec3 v)
+{
+    for(int i = 0; i < 3; i++)
+        printf("% -.2f ", v[i]);
+    printf("\n");
+}
+
+void vec3_dump_long(vec3 v)
+{
+    for(int i = 0; i < 3; i++)
+        printf("% -f ", v[i]);
+    printf("\n");
+}
+
+
+void mat3_dump(mat3 m)
+{
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 3; j++)
+            printf("% -.2f ", m[j][i]);
+        printf("\n");
+    }
+    printf("\n");
+}
+
+
+void mat4_dump(mat4 m)
+{
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 4; j++)
+            printf("% -.2f ", m[j][i]);
+        printf("\n");
+    }
+    printf("\n");
+}
+
+
+
+bool same_sign(float a, float b)
+{
+    return a*b >= 0.0f;
+}
+
+float local_round(float var)
+{
+    // 37.66666 * 100 =3766.66
+    // 3766.66 + .5 =3767.16    for rounding off value
+    // then type cast to int so value is 3767
+    // then divided by 100 so the value converted into 37.67
+    float value = (int)(var * 100 + .5);
+    return (float)value / 100;
 }

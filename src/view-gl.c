@@ -31,43 +31,31 @@ GLint a_texcoords = 0;
 GLint u_tex = 0;
 GLint u_mvpmtx = 0;
 
+unsigned int global_accelerator = 1;
 
 void render(double vis)
 {
     SGBucket **buckets;
     Mesh *m;
-    double lat, lon, height;
-    SGVec3d epos;
 
-    plane_get_position(plane, &lat, &lon, &height);
-    buckets = tile_manager_get_tiles(tile_manager_get_instance(), lat, lon, 1.0);
+    buckets = tile_manager_get_tiles(tile_manager_get_instance(), plane->lat, plane->lon, 1.0);
     
-    epos = (SGVec3d){plane->X,plane->Y,plane->Z};
-
     for(int i = 0; buckets[i] != NULL; i++){
         m = sg_bucket_get_mesh(buckets[i]);
             if(m){
-            //   mesh_render(m, &epos, vis);
                 mesh_render_buffer(m, a_position, a_texcoords);
             }
     }
-#if 0
-    for(SGBucket *b = *buckets; *buckets != NULL; b++){
-        m = sg_bucket_get_mesh(b);
-            if(m)
-                mesh_render(m);
-    }
-#endif
 }
 
 int handle_keyboard(SDL_KeyboardEvent *event)
 {
     switch(event->keysym.sym){
         case SDLK_LEFT:
-            plane->vroll = (event->state == SDL_PRESSED) ? 0.1 : 0;
+            plane->vroll = (event->state == SDL_PRESSED) ? 1.0 : 0;
             break;
         case SDLK_RIGHT:
-            plane->vroll = (event->state == SDL_PRESSED) ? -0.1 : 0;
+            plane->vroll = (event->state == SDL_PRESSED) ? -1.0 : 0;
             break;
         case SDLK_DOWN:
             plane->vpitch = (event->state == SDL_PRESSED) ? 1.0 : 0;
@@ -76,10 +64,10 @@ int handle_keyboard(SDL_KeyboardEvent *event)
             plane->vpitch = (event->state == SDL_PRESSED) ? -1.0 : 0;
             break;
         case SDLK_PAGEUP:
-            plane->vyaw = (event->state == SDL_PRESSED) ? -0.1 : 0;
+            plane->vheading = (event->state == SDL_PRESSED) ? -1.0 : 0;
             break;
         case SDLK_PAGEDOWN:
-            plane->vyaw = (event->state == SDL_PRESSED) ? 0.1 : 0;
+            plane->vheading = (event->state == SDL_PRESSED) ? 1.0 : 0;
             break;
         case SDLK_KP_4:
             plane->vX = (event->state == SDL_PRESSED) ? 1.0 : 0;
@@ -99,6 +87,23 @@ int handle_keyboard(SDL_KeyboardEvent *event)
         case SDLK_KP_3:
             plane->vZ = (event->state == SDL_PRESSED) ? -1.0 : 0;
             break;
+        case SDLK_a:
+            global_accelerator++;
+            printf("global_accelerator: %d\n",global_accelerator);
+            break;
+        case SDLK_q:
+            if(global_accelerator > 1)
+                global_accelerator--;
+            printf("global_accelerator: %d\n",global_accelerator);
+            break;
+        case SDLK_n:
+            plane->speed = (event->state == SDL_PRESSED) ? 1.0 : 0;
+            break;
+        case SDLK_b:
+            plane->speed = (event->state == SDL_PRESSED) ? -1.0 : 0;
+            break;
+
+
         case SDLK_p:
             DumpPlane(plane);
             break;
@@ -113,8 +118,11 @@ int handle_keyboard(SDL_KeyboardEvent *event)
 int handle_event(void)
 {
     SDL_Event event;
+#if ENABLE_WAIT_EVENT
     SDL_WaitEvent(&event);
-
+#else
+    while (SDL_PollEvent(&event)) {
+#endif
     switch(event.type){
         case SDL_WINDOWEVENT:
             if(event.window.event == SDL_WINDOWEVENT_CLOSE)
@@ -125,6 +133,9 @@ int handle_event(void)
             return handle_keyboard(&(event.key));
             break;
     }
+#if !ENABLE_WAIT_EVENT
+    }
+#endif
     return false;
 }
 
@@ -197,15 +208,10 @@ int main(int argc, char **argv)
     texture_new("../../textures/mixedforest.png","MixedForest");
     texture_new("../../textures/shrub1.png","Sclerophyllous");
 
-    plane = calloc(1, sizeof(Plane));
-    plane->X = 4742006.50000;
-    plane->Y = 185376.81250;
-    plane->Z = 4248252.00000;
-    
-    plane->roll = 79.69936;
-    plane->pitch = -9.00000;
-    plane->yaw = 16.80003;
-    plane->bearing = NAN;
+    plane = plane_new(); /*implicit  0 0 0 yaw pitch roll*/
+    plane_set_position(plane, 44.451950000, 5.726316667, 852);
+    DumpPlane(plane);
+
 
     shader = shader_new("vertex.gl","fragment.gl");
     a_position = shader_get_attribute_location(shader, "position");
@@ -231,13 +237,18 @@ int main(int argc, char **argv)
 
 
     Uint32 ticks;
-    Uint32 last_ticks = 0; 
-    Uint32 elapsed = 0; 
-    Uint32 acc = 0; 
+    Uint32 last_ticks = 0;
+    Uint32 elapsed = 0;
+    Uint32 acc = 0;
     Uint32 nframes = 0;
 
+    time_t start = time(NULL);
+    time_t dt;
     while(!done){
         ticks = SDL_GetTicks();
+        elapsed = ticks - last_ticks;
+        dt = time(NULL) - start;
+        dt *= global_accelerator;
 
         done = handle_event();
 
@@ -247,22 +258,27 @@ int main(int argc, char **argv)
         glUseProgram(shader->program_id);
         glUniform1i(u_tex, 0);
 
-        PlaneView(plane);
+        PlaneView(plane, MSEC_TO_SEC(elapsed));
 
         glm_mat4_identity(mvp);
         glm_mat4_mul(projection_matrix, plane->view, mvp);
         glUniformMatrix4fv(u_mvpmtx, 1, GL_FALSE, mvp[0]);
 
+
         render(10000.0);
         SDL_GL_SwapWindow(window);
         nframes++;
-        elapsed = ticks - last_ticks;
         acc += elapsed;
         if(elapsed < 20){
             SDL_Delay(20 - elapsed);
         }
         if(acc >= 4000){ /*1sec*/
             plane_show_position(plane);
+            printf("NED vectors:\n");
+            printf("n: "); vec3_dump_long(plane->n);
+            printf("e: "); vec3_dump_long(plane->e);
+            printf("d: "); vec3_dump_long(plane->d);
+
 
             printf("Current FPS: %d\n",nframes);
             nframes = 0;
@@ -272,7 +288,7 @@ int main(int argc, char **argv)
     }
     shader_free(shader);
     tile_manager_shutdown();
-    free(plane);
+    plane_free(plane);
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
