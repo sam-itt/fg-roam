@@ -3,6 +3,8 @@
 #include <math.h>
 
 #include "plane.h"
+#include "gps-feed.h"
+#include "gps-file-feed.h"
 
 #include "geodesy.h"
 
@@ -157,8 +159,86 @@ void plane_set_position(Plane *self, double lat, double lon, double alt)
 }
 
 
+/*dt  in seconds*/
+void plane_update_position(Plane *self, double lat, double lon, double alt, time_t dt)
+{
+    double oldX, oldY, oldZ;
+
+    oldX = self->X;
+    oldY = self->Y;
+    oldZ = self->Z;
+
+//    printf("Plane prev pos (X,Y,Z): %0.5f, %0.5f, %0.5f\n",oldX,oldY,oldZ);
+    plane_set_position(self, lat, lon, alt);
+    if(!isnan(oldX)){
+        double dX, dY, dZ;
+
+//        printf("Plane new pos (X,Y,Z): %0.5f, %0.5f, %0.5f\n",self->X,self->Y,self->Z);
+        dX = self->X - oldX;
+        dY = self->Y - oldY;
+        dZ = self->Z - oldZ;
+
+//        printf("Plane movement (dX,dY,dZ): %0.5f, %0.5f, %0.5f\n",dX,dY,dZ);
+        self->vX = dX/dt;
+        self->vY = dY/dt;
+        self->vZ = dZ/dt;
+
+//        printf("Plane speeds (X,Y,Z): %0.5f, %0.5f, %0.5f\n",self->vX,self->vY,self->vZ);
+    }
 }
 
+/*dt  in seconds*/
+void plane_update_position2(Plane *self, time_t dt)
+{
+    float distance;
+
+    distance = self->speed * dt; /*m/s * s -> m*/
+    double distRatio = distance / EARTH_RADIUS*1000.0;
+    double distRatioSine = sin(distRatio);
+    double distRatioCosine = cos(distRatio);
+
+    double startLatRad = glm_rad(self->lat);
+    double startLonRad = glm_rad(self->lon);
+
+    double startLatCos = cos(startLatRad);
+    double startLatSin = sin(startLatRad);
+
+    double endLatRads = asin((startLatSin * distRatioCosine) + (startLatCos * distRatioSine * cos(glm_rad(self->heading))));
+
+    double endLonRads = startLonRad
+        + atan2(sin(glm_rad(self->heading)) * distRatioSine * startLatCos,
+            distRatioCosine - startLatSin * sin(endLatRads));
+
+    self->lat = glm_deg(endLatRads);
+    self->lon = glm_deg(endLonRads);
+
+    self->alt = self->alt + (sinf(glm_rad(self->pitch)) * (self->speed*dt));
+
+}
+
+
+
+
+void plane_update(Plane *self, GpsFeed *feed)
+{
+    GpsRecord rec;
+    static GpsRecord last_rec = GPS_RECORD_INVALID;
+
+    gps_feed_get_next(feed, &rec);
+    if(!gps_record_equals(&rec, &last_rec)){
+        plane_set_position(self, rec.lat, rec.lon, rec.alt);
+//        plane_update_position(self, rec.lat, rec.lon, rec.alt, rec.time - last_rec.time);
+        last_rec = rec;
+    }
+}
+
+void plane_update_timed(Plane *self, GpsFileFeed *feed, double dt)
+{
+    GpsRecord rec;
+
+    gps_file_feed_get(feed, &rec, dt);
+    plane_set_position(self, rec.lat, rec.lon, rec.alt);
+}
 
 void plane_show_position(Plane *p)
 {

@@ -21,6 +21,8 @@
 #include "geodesy.h"
 #include "misc.h"
 #include "tile-manager.h"
+#include "gps-file-feed.h"
+
 
 Plane *plane = NULL;
 Mesh *mesh = NULL;
@@ -229,6 +231,10 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
+    GpsFileFeed *feed;
+
+    feed = gps_file_feed_new_from_file("test.gps", 159);
+
     mat4 projection_matrix;
     mat4 mvp;
 
@@ -258,6 +264,8 @@ int main(int argc, char **argv)
         glUseProgram(shader->program_id);
         glUniform1i(u_tex, 0);
 
+//        plane_update(plane, GPS_FEED(feed));
+        plane_update_timed(plane, feed, dt);
         PlaneView(plane, MSEC_TO_SEC(elapsed));
 
         glm_mat4_identity(mvp);

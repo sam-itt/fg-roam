@@ -5,6 +5,8 @@
 #include <GL/glut.h>
 #include <cglm/cglm.h>
 
+#include "gps-feed.h"
+#include "gps-file-feed.h"
 
 typedef struct{
     double lat; /*degrees*/
@@ -49,4 +51,9 @@ void DumpPlane(Plane *p);
 void plane_get_position(Plane *p, double *lat, double *lon, double *alt);
 void plane_set_position(Plane *self, double lat, double lon, double alt);
 void plane_show_position(Plane *p);
+void plane_update(Plane *self, GpsFeed *feed);
+
+void plane_update_position(Plane *self, double lat, double lon, double alt, time_t dt);
+void plane_update_timed(Plane *self, GpsFileFeed *feed, double dt);
+void plane_update_position2(Plane *self, time_t dt);
 #endif
