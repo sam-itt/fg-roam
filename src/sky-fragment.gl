@@ -1,0 +1,11 @@
+#version 120
+
+varying vec3 textureCoords;
+
+uniform samplerCube cubeMap;
+
+void main(void){
+    vec3 cube = vec3(textureCube(cubeMap, textureCoords.xyz));
+    gl_FragColor = vec4(cube, 1.0);
+//   gl_FragColor = textureCube(cubeMap, textureCoords);
+}

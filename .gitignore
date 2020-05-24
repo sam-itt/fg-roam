@@ -1,4 +1,5 @@
 *.o
+compile_commands.json
 src/view-gl
 test/btg/test-btg
 test/btg/test-v7.obj

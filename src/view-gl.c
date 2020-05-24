@@ -1,4 +1,4 @@
-#define _GNU_SOURCE 1 
+#define _GNU_SOURCE 1
 #define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
 #include <stdio.h>
@@ -23,6 +23,7 @@
 #include "tile-manager.h"
 #include "gps-file-feed.h"
 
+#include "skybox.h"
 
 Plane *plane = NULL;
 Mesh *mesh = NULL;
@@ -33,6 +34,7 @@ GLint a_texcoords = 0;
 GLint u_tex = 0;
 GLint u_mvpmtx = 0;
 
+
 unsigned int global_accelerator = 1;
 
 void render(double vis)
@@ -41,7 +43,7 @@ void render(double vis)
     Mesh *m;
 
     buckets = tile_manager_get_tiles(tile_manager_get_instance(), plane->lat, plane->lon, 1.0);
-    
+
     for(int i = 0; buckets[i] != NULL; i++){
         m = sg_bucket_get_mesh(buckets[i]);
             if(m){
@@ -163,8 +165,8 @@ int main(int argc, char **argv)
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
     window = SDL_CreateWindow(
-        "SDL Test", SDL_WINDOWPOS_CENTERED, 
-        SDL_WINDOWPOS_CENTERED, 800, 600, 
+        "SDL Test", SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED, 800, 600,
         SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
     );
 
@@ -241,6 +243,8 @@ int main(int argc, char **argv)
     glm_mat4_identity(projection_matrix);
     glm_perspective(glm_rad(60.0f), 800.0f/600.0f, 1.0f, 1000.0f, projection_matrix);
 
+    Skybox *skybox = skybox_new(projection_matrix);
+    mat4 skyview = GLM_MAT4_IDENTITY_INIT;
 
     Uint32 ticks;
     Uint32 last_ticks = 0;
@@ -265,15 +269,21 @@ int main(int argc, char **argv)
         glUniform1i(u_tex, 0);
 
 //        plane_update(plane, GPS_FEED(feed));
-        plane_update_timed(plane, feed, dt);
+//        plane_update_timed(plane, feed, dt);
         PlaneView(plane, MSEC_TO_SEC(elapsed));
 
         glm_mat4_identity(mvp);
         glm_mat4_mul(projection_matrix, plane->view, mvp);
         glUniformMatrix4fv(u_mvpmtx, 1, GL_FALSE, mvp[0]);
 
+        glm_mat4_identity(skyview);
+//        glm_rotate_y(skyview, glm_rad(-plane->heading), skyview);
+//        glm_rotate_x(skyview, glm_rad(plane->pitch), skyview);
 
+        glEnable(GL_DEPTH_TEST);   // skybox should be drawn behind anything else
         render(10000.0);
+        skybox_render(skybox, skyview);
+
         SDL_GL_SwapWindow(window);
         nframes++;
         acc += elapsed;
