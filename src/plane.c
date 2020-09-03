@@ -106,6 +106,51 @@ void PlaneView(Plane *p, double dt)
 
 }
 
+void plane_set_attitude(Plane *p, double roll, double pitch, double heading)
+{
+    mat3 mtmp;
+
+    p->roll = roll;
+    p->pitch = pitch;
+    p->heading = heading;
+
+    glm_mat4_identity(p->attitude);
+    /*Mickey-mouse axes to get a straight view*/
+    glm_rotate(p->attitude, glm_rad(86), (vec3){0.0f, 0.0f, 1.0f});
+    glm_rotate(p->attitude, glm_rad(40), (vec3){0.0f, 1.0f, 0.0f});
+
+    glm_vec3_copy(p->n, p->x);
+    glm_vec3_copy(p->e, p->y);
+    glm_vec3_copy(p->d, p->z);
+
+    glm_rotate(p->attitude, glm_rad(0), p->x);
+    glm_rotate(p->attitude, glm_rad(180), p->z);
+    glm_rotate(p->attitude, glm_rad(0), p->y);
+
+    glm_rotate(p->attitude, -glm_rad(p->heading), p->z);
+    glm_mat3_zero(mtmp);
+    geo_mat3_rot(p->z, -glm_rad(p->heading), mtmp);
+    glm_mat3_mulv(mtmp, p->x, p->x);
+    glm_mat3_mulv(mtmp, p->y, p->y);
+    glm_mat3_mulv(mtmp, p->z, p->z);
+
+    glm_rotate(p->attitude, glm_rad(p->pitch), p->y);
+    glm_mat3_zero(mtmp);
+    geo_mat3_rot(p->y, glm_rad(p->pitch), mtmp);
+    glm_mat3_mulv(mtmp, p->x, p->x);
+    glm_mat3_mulv(mtmp, p->y, p->y);
+    glm_mat3_mulv(mtmp, p->z, p->z);
+
+    glm_rotate(p->attitude, glm_rad(p->roll), p->x);
+    glm_mat3_zero(mtmp);
+    geo_mat3_rot(p->x, glm_rad(p->roll), mtmp);
+    glm_mat3_mulv(mtmp, p->x, p->x);
+    glm_mat3_mulv(mtmp, p->y, p->y);
+    glm_mat3_mulv(mtmp, p->z, p->z);
+
+}
+
+
 void plane_get_position(Plane *p, double *lat, double *lon, double *alt)
 {
     /*TODO: just dirty out position on change using setters*/

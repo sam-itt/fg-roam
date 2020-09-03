@@ -23,6 +23,7 @@
 #include "tile-manager.h"
 #include "gps-file-feed.h"
 
+#include "flightgear-connector.h"
 #include "skybox.h"
 
 Plane *plane = NULL;
@@ -37,6 +38,8 @@ GLint u_mvpmtx = 0;
 
 unsigned int global_accelerator = 1;
 
+Mesh *lflg = NULL;
+
 void render(double vis)
 {
     SGBucket **buckets;
@@ -50,6 +53,8 @@ void render(double vis)
                 mesh_render_buffer(m, a_position, a_texcoords);
             }
     }
+    if(lflg)
+        mesh_render_buffer(lflg, a_position, a_texcoords);
 }
 
 int handle_keyboard(SDL_KeyboardEvent *event)
@@ -211,9 +216,44 @@ int main(int argc, char **argv)
     texture_new("../../textures/forest1a.png","EvergreenForest");
     texture_new("../../textures/mixedforest.png","MixedForest");
     texture_new("../../textures/shrub1.png","Sclerophyllous");
+    texture_new("../../textures/airport.png","Airport");
+    texture_new("../../textures/airport.png","Grass");
+    texture_new("../../textures/rock.png","BarrenCover");
+    texture_new("../../textures/glacier3.png","Glacier");
+    texture_new("../../textures/golfcourse1.png","GolfCourse");
+    texture_new("../../textures/airport.png","Greenspace");
+    texture_new("../../textures/deciduous1.png","Heath");
+    texture_new("../../textures/city1.png","Industrial");
+    texture_new("../../textures/water-lake.png","Lake");
+    texture_new("../../textures/rock.png","OpenMining");
+    texture_new("../../textures/irrcrop1.png","Orchard");
+    texture_new("../../textures/asphalt.png","Road");
+    texture_new("../../textures/rock.png","Rock");
+    texture_new("../../textures/Town1.png","Town");
+    texture_new("../../textures/gravel.png","Transport");
+    texture_new("../../textures/irrcrop1.png","Vineyard");
+    texture_new("../../textures/Runway/lf_dbl_solid_yellow.png","lf_dbl_solid_yellow");
+    texture_new("../../textures/Runway/lf_runway_hold_border.png","lf_runway_hold_border");
+    texture_new("../../textures/Runway/pa_0l.png","pa_0l");
+    texture_new("../../textures/Runway/pa_2l.png","pa_2l");
+    texture_new("../../textures/Runway/pa_2r.png","pa_2r");
+    texture_new("../../textures/Runway/pa_4r.png","pa_4r");
+    texture_new("../../textures/Runway/pa_aim.png","pa_aim");
+    texture_new("../../textures/Runway/pa_centerline.png","pa_centerline");
+    texture_new("../../textures/Runway/pa_dspl_arrows.png","pa_dspl_arrows");
+    texture_new("../../textures/Runway/pa_dspl_thresh.png","pa_dspl_thresh");
+    texture_new("../../textures/Runway/pa_rest.png","pa_rest");
+    texture_new("../../textures/Runway/pa_shoulder_f1.png","pa_shoulder_f");
+    texture_new("../../textures/Runway/pa_threshold.png","pa_threshold");
+    texture_new("../../textures/Runway/pc_helipad.png","pc_heli");
+    texture_new("../../textures/Runway/pc_tiedown.png","pc_tiedown");
+    texture_new("../../textures/Runway/grass_rwy.png","grass_rwy");
+
+    lflg = mesh_new_from_file("../../Terrain/e000n40/e005n45/LFLG.btg.gz");
 
     plane = plane_new(); /*implicit  0 0 0 yaw pitch roll*/
-    plane_set_position(plane, 44.451950000, 5.726316667, 852);
+    //plane_set_position(plane, 44.451950000, 5.726316667, 852);
+    plane_set_position(plane, 45.21547, 5.84483, 718/3.281 + 4);
     DumpPlane(plane);
 
 
@@ -233,10 +273,6 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    GpsFileFeed *feed;
-
-    feed = gps_file_feed_new_from_file("test.gps", 159);
-
     mat4 projection_matrix;
     mat4 mvp;
 
@@ -254,6 +290,13 @@ int main(int argc, char **argv)
 
     time_t start = time(NULL);
     time_t dt;
+
+    FlightgearConnector *fglink;
+    fglink = flightgear_connector_new(6789);
+    flightgear_connector_set_nonblocking(fglink);
+    FlightgearPacket packet;
+
+
     while(!done){
         ticks = SDL_GetTicks();
         elapsed = ticks - last_ticks;
@@ -261,6 +304,21 @@ int main(int argc, char **argv)
         dt *= global_accelerator;
 
         done = handle_event();
+        if(flightgear_connector_get_packet(fglink, &packet)){
+            float lon = fmod(packet.longitude+180, 360.0) - 180;
+            packet.altitude = roundf(packet.altitude/3.281);
+            float calt = packet.altitude + 1.5/*+ 398*/;
+            calt = roundf(calt * 100) / 100.0;
+    //        packet.roll = roundf(packet.roll * 100) / 100.0;
+    //        packet.pitch = roundf(packet.pitch * 100) / 100.0;
+    //        packet.heading = roundf(packet.heading * 100) / 100.0;
+
+//            printf("Packet altitude: %d feets, %0.2f meters, corrected to %0.2f meters\n", packet.altitude, packet.altitude/3.281,calt);
+//            plane_update_position(plane, packet.latitude, lon, packet.altitude + 2, elapsed);
+            plane_set_position(plane, packet.latitude, lon, packet.altitude + 2);
+            plane_set_attitude(plane, packet.roll, packet.pitch, packet.heading);
+        }
+
 
         glClearColor (1.0, 1.0, 1.0, 0.0);
         glClear (GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);

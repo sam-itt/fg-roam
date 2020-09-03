@@ -14,8 +14,8 @@ typedef struct{
     float alt; /*meters*/
 
     /*degrees*/
-    GLfloat roll; 
-    GLfloat pitch; 
+    GLfloat roll;
+    GLfloat pitch;
     GLfloat heading;
 
     /*ECEF coordinates (meters)*/
@@ -25,12 +25,12 @@ typedef struct{
 
     float speed; /*m/s*/
 
-    GLfloat vroll; 
-    GLfloat vpitch; 
+    GLfloat vroll;
+    GLfloat vpitch;
     GLfloat vheading;
 
-    GLfloat vX; 
-    GLfloat vY; 
+    GLfloat vX;
+    GLfloat vY;
     GLfloat vZ;
 
     vec3 n, e, d;
@@ -50,6 +50,7 @@ void DumpPlane(Plane *p);
 
 void plane_get_position(Plane *p, double *lat, double *lon, double *alt);
 void plane_set_position(Plane *self, double lat, double lon, double alt);
+void plane_set_attitude(Plane *p, double roll, double pitch, double heading);
 void plane_show_position(Plane *p);
 void plane_update(Plane *self, GpsFeed *feed);
 
