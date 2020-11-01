@@ -690,6 +690,16 @@ void mat4_dump(mat4 m)
     printf("\n");
 }
 
+void mat4_dump_full(mat4 m)
+{
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 4; j++)
+            printf("% -f ", m[j][i]);
+        printf("\n");
+    }
+    printf("\n");
+}
+
 
 
 bool same_sign(float a, float b)
