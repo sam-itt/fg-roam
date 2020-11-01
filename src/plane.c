@@ -7,6 +7,10 @@
 #include "gps-file-feed.h"
 
 #include "geodesy.h"
+#include "quat-ext.h"
+
+#include "sg_geod.h"
+
 
 Plane *plane_new(void)
 {
@@ -17,13 +21,8 @@ Plane *plane_new(void)
         rv->X = NAN;
         rv->Y = NAN;
         rv->Z = NAN;
-        rv->n[0] = NAN;
 
         glm_mat4_identity(rv->attitude);
-        /*Mickey-mouse axes to get a straight view*/
-        glm_rotate(rv->attitude, glm_rad(90), (vec3){0.0f, 0.0f, 1.0f});
-        glm_rotate(rv->attitude, glm_rad(45), (vec3){0.0f, 1.0f, 0.0f});
-
     }
     return rv;
 }
@@ -35,12 +34,6 @@ void plane_free(Plane *self)
 
 void PlaneView(Plane *p, double dt)
 {
-    mat3 mtmp;
-    /*
-    heading is pitch -> 45
-    roll is roll
-    pitch is heading*/
-
     dt = 1.0;
 
     if(p->speed){
@@ -62,92 +55,50 @@ void PlaneView(Plane *p, double dt)
     fmod(p->heading, 360);
 
     glm_mat4_identity(p->view);
-    if(!p->inited){
-        glm_vec3_copy(p->n, p->x);
-        glm_vec3_copy(p->e, p->y);
-        glm_vec3_copy(p->d, p->z);
 
-        glm_rotate(p->attitude, glm_rad(0), p->x);
-        glm_rotate(p->attitude, glm_rad(180), p->z);
-        glm_rotate(p->attitude, glm_rad(0), p->y);
+    versor hlOr;
+    versor hlToBody;
+    versor ec2body;
+    versor q;
+    versor mViewOrientation;
 
-        printf("Using local axes !\n");
+   // The quaternion rotating from the earth centered frame to the
+    // horizontal local frame
+    glm_quat_from_lon_lat(hlOr, p->lon, p->lat);
 
-        p->inited = true;
-    }
+    // The rotation from the horizontal local frame to the basic view orientation
+    glm_quat_from_ypr(hlToBody, p->heading, p->pitch, p->roll);
 
-    if(p->vheading != 0){
-        glm_rotate(p->attitude, glm_rad(p->vheading), p->z);
-        glm_mat3_zero(mtmp);
-        geo_mat3_rot(p->z, -glm_rad(p->vheading), mtmp);
-        glm_mat3_mulv(mtmp, p->x, p->x);
-        glm_mat3_mulv(mtmp, p->y, p->y);
-        glm_mat3_mulv(mtmp, p->z, p->z);
-    }
-    if(p->vpitch != 0){
-        glm_rotate(p->attitude, glm_rad(p->vpitch), p->y);
-        glm_mat3_zero(mtmp);
-        geo_mat3_rot(p->y, -glm_rad(p->vpitch), mtmp);
-        glm_mat3_mulv(mtmp, p->x, p->x);
-        glm_mat3_mulv(mtmp, p->y, p->y);
-        glm_mat3_mulv(mtmp, p->z, p->z);
-    }
-    if(p->vroll != 0){
-        glm_rotate(p->attitude, glm_rad(p->vroll), p->x);
-        glm_mat3_zero(mtmp);
-        geo_mat3_rot(p->x, -glm_rad(p->vroll), mtmp);
-        glm_mat3_mulv(mtmp, p->x, p->x);
-        glm_mat3_mulv(mtmp, p->y, p->y);
-        glm_mat3_mulv(mtmp, p->z, p->z);
-    }
+    // Compute the eyepoints orientation and position
+    // wrt the earth centered frame - that is global coorinates
+    glm_quat_mul(hlOr, hlToBody, ec2body);
 
-    glm_mat4_mul(p->view, p->attitude, p->view);
+    // The cartesian position of the basic view coordinate
+    vec3 position = {p->X, p->Y, p->Z};
+
+    // This is rotates the x-forward, y-right, z-down coordinate system the where
+    // simulation runs into the OpenGL camera system with x-right, y-up, z-back.
+    glm_quat_init(q, -0.5, -0.5, 0.5, 0.5);
+
+//    p->_absolute_view_pos = position;
+    glm_quat_mul(ec2body, q, mViewOrientation);
+
+    mat4 rotation;
+    versor view_inv;
+    glm_quat_inv(mViewOrientation, view_inv);
+    glm_quat_mat4(view_inv, rotation);
+
+    glm_mat4_mul(p->view, rotation, p->view);
     glm_translate(p->view, (vec3){-p->X, -p->Y, -p->Z});
-
 }
+
+
 
 void plane_set_attitude(Plane *p, double roll, double pitch, double heading)
 {
-    mat3 mtmp;
-
     p->roll = roll;
     p->pitch = pitch;
     p->heading = heading;
-
-    glm_mat4_identity(p->attitude);
-    /*Mickey-mouse axes to get a straight view*/
-    glm_rotate(p->attitude, glm_rad(86), (vec3){0.0f, 0.0f, 1.0f});
-    glm_rotate(p->attitude, glm_rad(40), (vec3){0.0f, 1.0f, 0.0f});
-
-    glm_vec3_copy(p->n, p->x);
-    glm_vec3_copy(p->e, p->y);
-    glm_vec3_copy(p->d, p->z);
-
-    glm_rotate(p->attitude, glm_rad(0), p->x);
-    glm_rotate(p->attitude, glm_rad(180), p->z);
-    glm_rotate(p->attitude, glm_rad(0), p->y);
-
-    glm_rotate(p->attitude, -glm_rad(p->heading), p->z);
-    glm_mat3_zero(mtmp);
-    geo_mat3_rot(p->z, -glm_rad(p->heading), mtmp);
-    glm_mat3_mulv(mtmp, p->x, p->x);
-    glm_mat3_mulv(mtmp, p->y, p->y);
-    glm_mat3_mulv(mtmp, p->z, p->z);
-
-    glm_rotate(p->attitude, glm_rad(p->pitch), p->y);
-    glm_mat3_zero(mtmp);
-    geo_mat3_rot(p->y, glm_rad(p->pitch), mtmp);
-    glm_mat3_mulv(mtmp, p->x, p->x);
-    glm_mat3_mulv(mtmp, p->y, p->y);
-    glm_mat3_mulv(mtmp, p->z, p->z);
-
-    glm_rotate(p->attitude, glm_rad(p->roll), p->x);
-    glm_mat3_zero(mtmp);
-    geo_mat3_rot(p->x, glm_rad(p->roll), mtmp);
-    glm_mat3_mulv(mtmp, p->x, p->x);
-    glm_mat3_mulv(mtmp, p->y, p->y);
-    glm_mat3_mulv(mtmp, p->z, p->z);
-
 }
 
 
@@ -189,18 +140,11 @@ void plane_get_position(Plane *p, double *lat, double *lon, double *alt)
  */
 void plane_set_position(Plane *self, double lat, double lon, double alt)
 {
-    const double *pos;
-
     self->lat = lat;
     self->lon = lon;
     self->alt = alt;
 
-    geo_get_ned(self->lat, self->lon, self->n, self->e, self->d);
-
-    pos = llhxyz(lat, lon, alt/1000.0); /*rv in KM*/
-    self->X = pos[0]*1000.0;
-    self->Y = pos[1]*1000.0;
-    self->Z = pos[2]*1000.0;
+    SGGeodToCart(self->lat, self->lon, self->alt, &self->X, &self->Y, &self->Z);
 }
 
 
@@ -297,10 +241,6 @@ void DumpPlane(Plane *p)
 {
     printf("Plane position(X,Y,Z): %0.5f, %0.5f, %0.5f\n",p->X,p->Y,p->Z);
     printf("Plane attiude: roll:%0.5f pitch: %0.5f heading: %0.5f\n",p->roll,p->pitch,p->heading);
-    printf("NED vectors:\n");
-    printf("n: "); vec3_dump(p->n);
-    printf("e: "); vec3_dump(p->e);
-    printf("d: "); vec3_dump(p->d);
     printf("XYZ vectors:\n");
     printf("x: "); vec3_dump(p->x);
     printf("y: "); vec3_dump(p->y);
@@ -308,10 +248,6 @@ void DumpPlane(Plane *p)
 
 #if 0
     printf("Plane View Matrix:\n");
-    printf("vectors:\n");
-    printf("n: "); vec3_dump(p->n);
-    printf("e: "); vec3_dump(p->e);
-    printf("d: "); vec3_dump(p->d);
     mat4_dump(p->view);
 #endif
 

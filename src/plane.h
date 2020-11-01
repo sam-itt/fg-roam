@@ -19,9 +19,9 @@ typedef struct{
     GLfloat heading;
 
     /*ECEF coordinates (meters)*/
-    GLfloat X;
-    GLfloat Y;
-    GLfloat Z;
+    double X;
+    double Y;
+    double Z;
 
     float speed; /*m/s*/
 
@@ -33,7 +33,6 @@ typedef struct{
     GLfloat vY;
     GLfloat vZ;
 
-    vec3 n, e, d;
     vec3 x, y, z;
     bool inited;
 
