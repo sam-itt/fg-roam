@@ -696,9 +696,9 @@ static void read_indices_uint32(char* buffer,
 
     // WS2.0 fix : toss zero area triangles
     if ( ( count == 3 ) && (indexMask & SG_IDX_VERTICES) ) {
-        if ( (g_array_index(vertices,int,0) == g_array_index(vertices,int,1)) ||
-             (g_array_index(vertices,int,1) == g_array_index(vertices,int,2)) ||
-             (g_array_index(vertices,int,2) == g_array_index(vertices,int,0)) ) {
+        if ( (g_array_index(vertices,uint32_t,0) == g_array_index(vertices,uint32_t,1)) ||
+             (g_array_index(vertices,uint32_t,1) == g_array_index(vertices,uint32_t,2)) ||
+             (g_array_index(vertices,uint32_t,2) == g_array_index(vertices,uint32_t,0)) ) {
             g_array_remove_range(vertices, 0, vertices->len);
         }
     }
@@ -744,9 +744,9 @@ static void read_indices_uint16(char* buffer,
 
     // WS2.0 fix : toss zero area triangles
     if ( ( count == 3 ) && (indexMask & SG_IDX_VERTICES) ) {
-        if ( (g_array_index(vertices,int,0) == g_array_index(vertices,int,1)) ||
-             (g_array_index(vertices,int,1) == g_array_index(vertices,int,2)) ||
-             (g_array_index(vertices,int,2) == g_array_index(vertices,int,0)) ) {
+        if ( (g_array_index(vertices,uint16_t,0) == g_array_index(vertices,uint16_t,1)) ||
+             (g_array_index(vertices,uint16_t,1) == g_array_index(vertices,uint16_t,2)) ||
+             (g_array_index(vertices,uint16_t,2) == g_array_index(vertices,uint16_t,0)) ) {
             g_array_remove_range(vertices, 0, vertices->len);
         }
     }
@@ -853,7 +853,7 @@ void sg_bin_object_read_object(SGBinObject *self, gzFile fp,
         }
 
         size_t indices_size;
-        indices_size = (self->version >= 10) ? sizeof(int) : sizeof(uint16_t);
+        indices_size = (self->version >= 10) ? sizeof(uint32_t) : sizeof(uint16_t);
         vs = g_array_new(FALSE, TRUE, indices_size);
         ns = g_array_new(FALSE, TRUE, indices_size);
         cs = g_array_new(FALSE, TRUE, indices_size);
