@@ -9,6 +9,9 @@
 #include "geodesy.h"
 #include "quat-ext.h"
 
+#include "sg_geod.h"
+
+
 Plane *plane_new(void)
 {
     Plane *rv;
@@ -157,13 +160,16 @@ void plane_set_position(Plane *self, double lat, double lon, double alt)
     self->lat = lat;
     self->lon = lon;
     self->alt = alt;
-#if 1
-    geo_get_ned(self->lat, self->lon, self->n, self->e, self->d);
+#if 0
+//    geo_get_ned(self->lat, self->lon, self->n, self->e, self->d);
 
     pos = llhxyz(lat, lon, alt/1000.0); /*rv in KM*/
     self->X = pos[0]*1000.0;
     self->Y = pos[1]*1000.0;
     self->Z = pos[2]*1000.0;
+#else
+    SGGeodToCart(self->lat, self->lon, self->alt, &self->X, &self->Y, &self->Z);
+//    printf("%f,%f,%f -> %f,%f,%f\n",self->lat, self->lon, self->alt, self->X, self->Y, self->Z);
 #endif
 }
 
