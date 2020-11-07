@@ -11,12 +11,12 @@
 typedef struct{
     double lat; /*degrees*/
     double lon; /*degrees*/
-    float alt; /*meters*/
+    double alt; /*meters*/
 
     /*degrees*/
-    GLfloat roll;
-    GLfloat pitch;
-    GLfloat heading;
+    double roll;
+    double pitch;
+    double heading;
 
     /*ECEF coordinates (meters)*/
     double X;
@@ -36,8 +36,8 @@ typedef struct{
     vec3 x, y, z;
     bool inited;
 
-    mat4 attitude;
-    mat4 view;
+    mat4d attitude;
+    mat4d view;
 } Plane;
 
 

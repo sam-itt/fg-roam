@@ -55,7 +55,7 @@ typedef struct{
     VGroup *groups;
     size_t n_groups;
 
-    mat4 transformation;
+    mat4d transformation;
 }Mesh;
 
 VGroup *vgroup_init(VGroup *self, const char *material, size_t n_triangles);
@@ -73,7 +73,7 @@ bool mesh_set_size(Mesh *self, size_t size);
 VGroup *mesh_add_vgroup(Mesh *self, const char *material, size_t n_triangles);
 
 Mesh *mesh_prepare(Mesh *self);
-void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_mvp, mat4 vp);
+void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_mvp, mat4d vp);
 
 void mesh_dump(Mesh *self);
 

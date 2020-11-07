@@ -17,6 +17,7 @@
 #include "misc.h"
 
 #include "geodesy.h"
+#include "cglm/mat4d.h"
 
 #define position_equal(p1, p2) (((p1)->x == (p2)->x) && ((p1)->y == (p2)->y) && ((p1)->z == (p2)->z))
 #define texcoord_equal(t1, t2) ((t1)->x == (t2)->x) && ((t1)->y == (t2)->y)
@@ -244,7 +245,7 @@ Mesh *mesh_new_empty(void)
     Mesh *rv;
     rv = calloc(1, sizeof(Mesh));
     if(rv){
-        glm_mat4_identity(rv->transformation);
+        glm_mat4d_identity(rv->transformation);
     }
     return rv;
 }
@@ -372,17 +373,19 @@ Mesh *mesh_prepare(Mesh *self)
  * @param u_mvp Handle to the Model-View-Projection uniform matrix on the shader
  * @param vp The current View-Projection matrix.
  */
-void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_mvp, mat4 vp)
+void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_mvp, mat4d vp)
 {
     /* TODO: Have a link between the mesh and the shader (rendermanager that renders all meshes that use a given shader?)
      * get the mv out of here (rendermaanger that applies the matrix before calling mesh_render_buffer?)
      * */
 
     VGroup *group;
-    mat4 mvp;
+    mat4d mvp;
+    mat4 mvpf;
 
-    glm_mat4_mul(vp, self->transformation, mvp);
-    glUniformMatrix4fv(u_mvp, 1, GL_FALSE, mvp[0]);
+    glm_mat4d_mul(vp, self->transformation, mvp);
+    glm_mat4d_ucopyf(mvp, mvpf);
+    glUniformMatrix4fv(u_mvp, 1, GL_FALSE, mvpf[0]);
 
     for(GLuint i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
@@ -451,8 +454,8 @@ Mesh *mesh_new_from_btg(const char *filename)
     }
 
     rv = mesh_new(ngroups);
-    glm_translate(rv->transformation,
-        (vec3){terrain->gbs_center.x,
+    glm_translated(rv->transformation,
+        (vec3d){terrain->gbs_center.x,
                 terrain->gbs_center.y,
                 terrain->gbs_center.z
         }

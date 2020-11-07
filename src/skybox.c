@@ -1,3 +1,4 @@
+#include "cglm/mat4d.h"
 #define _GNU_SOURCE
 #define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
@@ -88,7 +89,7 @@ static GLubyte indices[14] = {0, 1, 2, 3, 7, 1, 5, 4, 7, 6, 2, 4, 0, 1};
 bool skybox_load_textures(Skybox *self);
 void skybox_prepare_vbo(Skybox *self);
 
-Skybox *skybox_new(mat4 projection)
+Skybox *skybox_new(mat4d projection)
 {
     Skybox *self;
 
@@ -100,7 +101,7 @@ Skybox *skybox_new(mat4 projection)
 
 }
 
-Skybox *skybox_init(Skybox *self, mat4 projection)
+Skybox *skybox_init(Skybox *self, mat4d projection)
 {
     GLuint mtx;
 
@@ -132,9 +133,11 @@ Skybox *skybox_init(Skybox *self, mat4 projection)
         printf("Cannot bind skybox texunit\n");
         exit(-1);
     }
+    mat4 projf;
+    glm_mat4d_ucopyf(projection, projf);
 
     glUseProgram(self->shader->program_id);
-    glUniformMatrix4fv(mtx, 1, GL_FALSE, projection[0]);
+    glUniformMatrix4fv(mtx, 1, GL_FALSE, projf[0]);
     glUniform1i(self->texunit, 0);
     glUseProgram(0);
 
@@ -142,7 +145,7 @@ Skybox *skybox_init(Skybox *self, mat4 projection)
     return self;
 }
 
-void skybox_render(Skybox *self, mat4 view)
+void skybox_render(Skybox *self, mat4d view)
 {
     mat4 fview;
 
@@ -151,7 +154,7 @@ void skybox_render(Skybox *self, mat4 view)
     glEnable(GL_TEXTURE_CUBE_MAP);
     glUseProgram(self->shader->program_id);
 
-    glm_mat4_copy(view, fview);
+    glm_mat4d_ucopyf(view, fview);
 /*    fview[3][0] = 0.0;
     fview[3][1] = 0.0;
     fview[3][2] = 0.0;*/

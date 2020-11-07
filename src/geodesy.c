@@ -15,7 +15,7 @@ static double EARTH_Esq = NAN;
  *
  * <p>Inits globals EARTH_*</p>
  *
- * @param a 
+ * @param a
  * @param b
  */
 static void earthcon(double a, double b)
@@ -65,7 +65,7 @@ static void geodGBL(void)
 /**
  * Compute the radii at the geodetic latitude lat (in degrees)
  *
- * <p>Returns a pointer to 3 doubles r, rn, rm (all in km). 
+ * <p>Returns a pointer to 3 doubles r, rn, rm (all in km).
  * The caller must not free the returned value.</p>
  *
  * @param lat geodetic latitude in degrees
@@ -285,8 +285,8 @@ const double *xyzllh(double *xvec)
 /**
  * lat,lon,height to xyz vector
  *
- * <p>Returns a pointer to 3 doubles (x,y,z) all in km. 
- * Pointerer references local static memory, the caller must not 
+ * <p>Returns a pointer to 3 doubles (x,y,z) all in km.
+ * Pointerer references local static memory, the caller must not
  * free it.</p>
  *
  * @param flat   geodetic latitude in degree
@@ -334,10 +334,10 @@ const double *llhxyz(double flat, double flon, double altkm)
  * Computes the shortest distance (km) between two (lat/lon) points,
  * using haversine formula.
  *
- * @param lat1 first point latitude in degrees 
+ * @param lat1 first point latitude in degrees
  * @param lon1 first point longitude in degrees
- * @param lat2 second point latitude in degrees 
- * @param lon2 second point longitude in degrees 
+ * @param lat2 second point latitude in degrees
+ * @param lon2 second point longitude in degrees
  * @return distance between the two in km.
  */
 double geo_dist(double lat1, double lon1, double lat2, double lon2)
@@ -347,7 +347,7 @@ double geo_dist(double lat1, double lon1, double lat2, double lon2)
 	lon1 *= (M_PI / 180.0);
     lat1 *= (M_PI / 180.0);
     lat2 *= (M_PI / 180.0);
- 
+
 	dz = sin(lat1) - sin(lat2);
 	dx = cos(lon1) * cos(lat1) - cos(lat2);
 	dy = sin(lon1) * cos(lat1);
@@ -358,10 +358,10 @@ double geo_dist(double lat1, double lon1, double lat2, double lon2)
 /**
  * Computes the bearing/heading from point1 to point2, both (lat/lon) in degrees.
  *
- * @param lat1 first point latitude in degrees 
+ * @param lat1 first point latitude in degrees
  * @param lon1 first point longitude in degrees
- * @param lat2 second point latitude in degrees 
- * @param lon2 second point longitude in degrees 
+ * @param lat2 second point latitude in degrees
+ * @param lon2 second point longitude in degrees
  * @return Bearing/Heading between the two in degrees.
  */
 double geo_bearing(double lat1, double lon1, double lat2, double lon2)
@@ -392,14 +392,14 @@ double geo_bearing(double lat1, double lon1, double lat2, double lon2)
  * Computes the landing destination (lat/lon) where starting from
  * olat/olon with bearing and going distance km.
  *
- * <p>Returns a pointer to 3 doubles (x,y,z) all in km. 
- * Pointerer references local static memory, the caller must not 
+ * <p>Returns a pointer to 3 doubles (x,y,z) all in km.
+ * Pointerer references local static memory, the caller must not
  * free it.</p>
  *
- * @param olat origin point latitude in degrees 
+ * @param olat origin point latitude in degrees
  * @param olon origin point longitude in degrees
- * @param distance distance walked in km 
- * @param bearing orientation at the start point 
+ * @param distance distance walked in km
+ * @param bearing orientation at the start point
  * @return       pointer to 2 doubles (lat,lon), not to be freed
  */
 double *geo_destination(double olat, double olon, double distance, double bearing)
@@ -429,13 +429,13 @@ double *geo_destination(double olat, double olon, double distance, double bearin
  * Computes bounding geo box top left and down right coordinates (lat/lon)
  * which has its center on lat/lon (degrees) with a span of radius (km).
  *
- * <p>Returns a pointer to 4 doubles (lat1,lon1, lat2,lon2) all in degrees. 
- * Pointerer references local static memory, the caller must not 
+ * <p>Returns a pointer to 4 doubles (lat1,lon1, lat2,lon2) all in degrees.
+ * Pointerer references local static memory, the caller must not
  * free it.</p>
  *
- * @param clat center latitude in degrees 
+ * @param clat center latitude in degrees
  * @param clon center longitude in degrees
- * @param radius  radius in km 
+ * @param radius  radius in km
  * @return       pointer to 4 doubles (lat,lon)*2, not to be freed
  */
 double *geo_bounding_box(double clat, double clon, double radius)
@@ -450,7 +450,7 @@ double *geo_bounding_box(double clat, double clon, double radius)
 
     rv[2] = clat + dlat; //up left latitude
     rv[3] = clon + dlon; //up left longitude
-    
+
     return rv;
 }
 
@@ -690,7 +690,36 @@ void mat4_dump(mat4 m)
     printf("\n");
 }
 
+void mat4d_dump(mat4d m)
+{
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 4; j++)
+            printf("% -.2f ", m[j][i]);
+        printf("\n");
+    }
+    printf("\n");
+}
 
+
+void mat4_dump_full(mat4 m)
+{
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 4; j++)
+            printf("% -f ", m[j][i]);
+        printf("\n");
+    }
+    printf("\n");
+}
+
+void mat4d_dump_full(mat4d m)
+{
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 4; j++)
+            printf("% -f ", m[j][i]);
+        printf("\n");
+    }
+    printf("\n");
+}
 
 bool same_sign(float a, float b)
 {

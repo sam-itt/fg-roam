@@ -1,6 +1,6 @@
 [submodule "lib/cglm"]
 	path = lib/cglm
-	url = https://github.com/recp/cglm.git
+	url = https://github.com/sam-itt/cglm.git
 	shallow = true
 [submodule "lib/fg-io"]
 	path = lib/fg-io

@@ -3,7 +3,7 @@
 #include "quat-ext.h"
 
 /*Angles in Radians*/
-void glm_quat_from_euler(versor q, double z, double y, double x)
+void glm_quatd_from_euler(versord q, double z, double y, double x)
 {
     double zd2 = (double)(0.5)*z; double yd2 = (double)(0.5)*y; double xd2 = (double)(0.5)*x;
     double Szd2 = sin(zd2); double Syd2 = sin(yd2); double Sxd2 = sin(xd2);
@@ -11,7 +11,7 @@ void glm_quat_from_euler(versor q, double z, double y, double x)
     double Cxd2Czd2 = Cxd2*Czd2; double Cxd2Szd2 = Cxd2*Szd2;
     double Sxd2Szd2 = Sxd2*Szd2; double Sxd2Czd2 = Sxd2*Czd2;
 
-    glm_quat_init(q,
+    glm_quatd_init(q,
         Sxd2Czd2*Cyd2 - Cxd2Szd2*Syd2, //x
         Cxd2Czd2*Syd2 + Sxd2Szd2*Cyd2, //y
         Cxd2Szd2*Cyd2 - Sxd2Czd2*Syd2, //z
@@ -20,7 +20,7 @@ void glm_quat_from_euler(versor q, double z, double y, double x)
 }
 
 /*lon and lat in degrees*/
-void glm_quat_from_lon_lat(versor q, double lon, double lat)
+void glm_quatd_from_lon_lat(versord q, double lon, double lat)
 {
     /*Convert to Radians*/
     lon *= (M_PI/180.0);
@@ -33,7 +33,7 @@ void glm_quat_from_lon_lat(versor q, double lon, double lat)
     double Czd2 = cos(zd2);
     double Cyd2 = cos(yd2);
 
-    glm_quat_init(q,
+    glm_quatd_init(q,
         -Szd2*Syd2, //x
         Czd2*Syd2, //y
         Szd2*Cyd2, //z
@@ -42,9 +42,9 @@ void glm_quat_from_lon_lat(versor q, double lon, double lat)
 }
 
 /*Angles in degrees*/
-void glm_quat_from_ypr(versor q, float yaw, float pitch, float roll)
+void glm_quatd_from_ypr(versord q, double yaw, double pitch, double roll)
 {
-    glm_quat_from_euler(q,
+    glm_quatd_from_euler(q,
         yaw * (M_PI/180.0),
         pitch * (M_PI/180.0),
         roll * (M_PI/180.0)

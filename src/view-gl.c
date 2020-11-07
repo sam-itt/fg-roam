@@ -55,7 +55,7 @@ unsigned int global_accelerator = 1;
 
 Mesh *lflg = NULL;
 
-void render(double vis, mat4 mv)
+void render(double vis, mat4d mv)
 {
     SGBucket **buckets;
     Mesh *m;
@@ -288,14 +288,15 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    mat4 projection_matrix;
-    mat4 mvp;
+    mat4d projection_matrix;
+    mat4d mvp;
+    mat4 fmvp;
 
-    glm_mat4_identity(projection_matrix);
-    glm_perspective(glm_rad(60.0f), 800.0f/600.0f, 1.0f, 1000.0f, projection_matrix);
+    glm_mat4d_identity(projection_matrix);
+    glm_perspectived(glm_rad(60.0), 800.0/600.0, 1.0, 1000.0, projection_matrix);
 
     Skybox *skybox = skybox_new(projection_matrix);
-    mat4 skyview = GLM_MAT4_IDENTITY_INIT;
+    mat4d skyview = GLM_MAT4D_IDENTITY_INIT;
 
     Uint32 ticks;
     Uint32 last_ticks = 0;
@@ -383,10 +384,12 @@ int main(int argc, char **argv)
 //        plane_update_timed(plane, feed, dt);
         PlaneView(plane, MSEC_TO_SEC(elapsed));
 
-        glm_mat4_identity(mvp);
-        glm_mat4_mul(projection_matrix, plane->view, mvp);
+        glm_mat4d_identity(mvp);
+        glm_mat4d_mul(projection_matrix, plane->view, mvp);
+        glm_mat4d_ucopyf(mvp, fmvp);
+        glUniformMatrix4fv(u_mvpmtx, 1, GL_FALSE, fmvp[0]);
 
-        glm_mat4_identity(skyview);
+        glm_mat4d_identity(skyview);
 //        glm_rotate_y(skyview, glm_rad(-plane->heading), skyview);
 //        glm_rotate_x(skyview, glm_rad(plane->pitch), skyview);
 
