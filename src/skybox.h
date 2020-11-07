@@ -21,8 +21,8 @@ typedef struct{
 
 //uGLuint skybox_load_textures(void);
 
-Skybox *skybox_new(mat4 projection);
-Skybox *skybox_init(Skybox *self, mat4 projection);
+Skybox *skybox_new(mat4d projection);
+Skybox *skybox_init(Skybox *self, mat4d projection);
 
-void skybox_render(Skybox *self, mat4 view);
+void skybox_render(Skybox *self, mat4d view);
 #endif /* SKYBOX_H */

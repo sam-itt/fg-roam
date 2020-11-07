@@ -16,6 +16,8 @@
 #include "texture.h"
 #include "misc.h"
 
+#include "geodesy.h"
+#include "quat-ext.h"
 
 #if 0
 VGroup *vgroup_new(size_t size)
@@ -43,7 +45,9 @@ VGroup *vgroup_init(VGroup *self, size_t size, bool self_clear)
 //    printf("allocated %d indices at %p\n",size,self->indices);
     self->n_vertices = size;
 
+#if 1
     self->global_lookup = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
+#endif
 
     return self;
 }
@@ -53,7 +57,11 @@ void vgroup_dispose(VGroup *self)
     free(self->verts);
     free(self->texs);
     free(self->indices);
+
+#if 1
     g_hash_table_unref(self->global_lookup);
+#endif
+
 }
 
 size_t vgroup_get_size(VGroup *self, bool data_only)
@@ -124,7 +132,6 @@ Mesh *mesh_prepare(Mesh *self)
 {
 
     VGroup *group;
-
     for(unsigned int i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
 
@@ -149,9 +156,9 @@ Mesh *mesh_prepare(Mesh *self)
         glGenBuffers(1, &(group->element_buffer));
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->element_buffer);
         glBufferData(
-            GL_ELEMENT_ARRAY_BUFFER, 
+            GL_ELEMENT_ARRAY_BUFFER,
             group->n_vertices*sizeof(indice_t),
-            group->indices, 
+            group->indices,
             GL_STATIC_DRAW
         );
     }
@@ -174,9 +181,14 @@ void mesh_dump_buffer(Mesh *self)
         printf("Group %d/%d %d vertices\n",i ,self->n_groups-1, group->n_vertices);
         for(GLuint j = 0; j < group->n_vertices; j++){
             printf("#%d: %0.5f %0.5f %0.5f\n",
-                   j, group->verts[group->indices[j]].x, 
-                   group->verts[group->indices[j]].y, 
+                   j, group->verts[group->indices[j]].x,
+                   group->verts[group->indices[j]].y,
                    group->verts[group->indices[j]].z);
+            printf("#%d: %0.5f %0.5f\n",
+                j,
+                group->texs[group->indices[j]].x,
+                group->texs[group->indices[j]].y
+            );
         }
 
     }
@@ -187,15 +199,18 @@ void mesh_dump_buffer(Mesh *self)
 size_t vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex, int global_idx)
 {
     size_t rv = 0;
+#if 0
     gpointer existing;
 
     existing = g_hash_table_lookup(self->global_lookup, GINT_TO_POINTER(global_idx));
     if(existing){
         rv = GPOINTER_TO_UINT(existing);
-        if(self->texs[rv].x == tex->x && self->texs[rv].y == tex->y)
+        if(self->texs[rv].x == tex->x && self->texs[rv].y == tex->y){
+            printf("Re-using vertex %d\n",global_idx);
             return rv;
+        }
     }
-
+#endif
     if(self->nverts == self->vert_esize){
         self->vert_esize += 16;
         self->verts = reallocarray(self->verts,  self->vert_esize, sizeof(SGVec3d));
@@ -210,9 +225,9 @@ size_t vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex, int global_idx)
     self->texs[rv].x = tex->x;
     self->texs[rv].y = tex->y;
     self->nverts++;
-
+#if 0
     g_hash_table_insert(self->global_lookup, GINT_TO_POINTER(global_idx), GUINT_TO_POINTER(rv));
-
+#endif
     return(rv);
 }
 
@@ -222,10 +237,32 @@ Mesh *load_terrain(const char *filename)
 {
     Mesh *rv = NULL;
     SGBinObject *terrain;
+    int printed = 0;
 
     terrain = sg_bin_object_new();
     sg_bin_object_load(terrain, filename);
+//    printf("Terrain version: %d\n",terrain->version);
+#if 0
+    if(!strcmp(filename,"/home/samuel/dev/Terrain/e000n40/e005n45/3039691.btg"))
+        sg_bin_object_write_obj(terrain, "/tmp/cversion.obj");
+#endif
+//    printf("Doing %s, triangle_count: %d\n", filename,terrain->tris_v->len);
+#if 0
+    const double *llh;
+    double xyz[3] = {terrain->gbs_center.x,
+        terrain->gbs_center.y,
+        terrain->gbs_center.z
+    };
 
+    llh = xyzllh(xyz);
+    versor hlOr;
+    versor p,q;
+
+    glm_quat_from_lon_lat(p, llh[1], llh[0]);
+    glm_quat_from_euler(q, 0, 0, glm_rad(180));
+
+    glm_quat_mul(p, q, hlOr);
+#endif
 
     if ( terrain->tris_v->len != 0 ) {
         //printf("# triangle groups\n");
@@ -236,7 +273,7 @@ Mesh *load_terrain(const char *filename)
         size_t ngroups = 0;
         while ( start < terrain->tri_materials->len ) {
             // find next group
-            material = g_ptr_array_index(terrain->tri_materials,start); 
+            material = g_ptr_array_index(terrain->tri_materials,start);
            // printf("tri_materials.size: %d\n", terrain->tri_materials->len);
             while ( (end < terrain->tri_materials->len) &&
                     (!strcmp(material, g_ptr_array_index(terrain->tri_materials,end))) )
@@ -251,28 +288,29 @@ Mesh *load_terrain(const char *filename)
             end = start + 1;
         }
 
+   //     printf("Found %d groups\n", ngroups);
 
         rv = mesh_new(ngroups);
         size_t g_idx = 0;
         start = 0;
         end = 1;
 
+      //  printf("tri_materials.size: %d\n", terrain->tri_materials->len);
         while ( start < terrain->tri_materials->len ) {
             // find next group
-            material = g_ptr_array_index(terrain->tri_materials,start); 
-           // printf("tri_materials.size: %d\n", terrain->tri_materials->len);
+            material = g_ptr_array_index(terrain->tri_materials,start);
             while ( (end < terrain->tri_materials->len) &&
                     (!strcmp(material, g_ptr_array_index(terrain->tri_materials,end))) )
             {
-                //printf("end = %d\n",end);
+           //     printf("end = %d\n",end);
                 end++;
             }
-            //printf("group = %d to %d\n",start, end-1);
+        //    printf("group = %d to %d\n",start, end-1);
 
 
             // write group headers
 //            printf("\n");
-//            printf("# usemtl %s\n", material);
+         //   printf("# usemtl %s\n", material);
             // write groups
             vgroup_init(&(rv->groups[g_idx]), (end-start)*3, false);
             rv->groups[g_idx].tex_id = texture_get_id_by_name(material);
@@ -287,6 +325,8 @@ Mesh *load_terrain(const char *filename)
                 }
                 if(tri_c->len > 0)
                     printf("Triangle %d has %d colors!\n",i,tri_c->len);
+
+           //     printf("\tTriangle %d: ",i);
                 for (guint  j = 0; j < tri_v->len; ++j ) {
                     int a, b;
                     size_t idx;
@@ -300,9 +340,23 @@ Mesh *load_terrain(const char *filename)
                     }
                     SGVec3d vert = g_array_index(terrain->wgs84_nodes, SGVec3d, a);
                     SGVec2f tex = g_array_index(terrain->texcoords, SGVec2f, b);
+                    //printf("%d ",a);
+#if 0
+                    vec3 tpv = {vert.x,vert.y,vert.z};
+                    glm_quat_rotatev(hlOr, tpv, tpv);
+                    if(printed < 4){
+                        printf("hlOr makes (%f,%f,%f) -> (%f,%f,%f)\n",vert.x,vert.y,vert.z,tpv[0],tpv[1],tpv[2]);
+                        printed++;
+                    }
+                    vert.x = tpv[0];
+                    vert.y = tpv[1];
+                    vert.z = tpv[2];
+#endif
+#if 1
                     vert.x += terrain->gbs_center.x;
                     vert.y += terrain->gbs_center.y;
                     vert.z += terrain->gbs_center.z;
+#endif
 
                     idx = vgroup_add_vertex(&(rv->groups[g_idx]), &vert, &tex,a);
                     if(idx > INDICE_MAX){
@@ -315,6 +369,7 @@ Mesh *load_terrain(const char *filename)
 
                     vidx++;
                 }
+                //printf("\n");
             }
 //            printf("Group %d, final number of vertices %d vs %d\n", g_idx, rv->groups[g_idx].nverts,rv->groups[g_idx].n_vertices);
             g_idx++;
@@ -325,7 +380,7 @@ Mesh *load_terrain(const char *filename)
     }
 //    rv->terrain = terrain;
     sg_bin_object_free(terrain);
-    printf("Done loading terrain\n");
+    printf("Done loading terrain %s\n",filename);
     return rv;
 }
 
@@ -337,14 +392,14 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords)
         group = &(self->groups[i]);
         glActiveTexture(GL_TEXTURE0 );
         glBindTexture(GL_TEXTURE_2D, group->tex_id);
- 
+
         glEnableVertexAttribArray(position);
         glBindBuffer(GL_ARRAY_BUFFER, group->vertex_buffer);
         glVertexAttribPointer(
             position,
-            3, 
-            GL_DOUBLE, 
-            GL_FALSE, 
+            3,
+            GL_DOUBLE,
+            GL_FALSE,
             0, /*no need to specify stride on single attribute vectors*/
             (void*)0
         );
@@ -353,9 +408,9 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords)
         glBindBuffer(GL_ARRAY_BUFFER, group->texs_buffer);
         glVertexAttribPointer(
             texcoords,
-            2, 
-            GL_FLOAT, 
-            GL_FALSE, 
+            2,
+            GL_FLOAT,
+            GL_FALSE,
             0, /*As above*/
             (void*)0
         );

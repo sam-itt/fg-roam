@@ -23,7 +23,7 @@ Plane *plane_new(void)
         rv->Z = NAN;
         rv->n[0] = NAN;
 
-        glm_mat4_identity(rv->attitude);
+        glm_mat4d_identity(rv->attitude);
 #if 0
         /*Mickey-mouse axes to get a straight view*/
         glm_rotate(rv->attitude, glm_rad(90), (vec3){0.0f, 0.0f, 1.0f});
@@ -41,7 +41,6 @@ void plane_free(Plane *self)
 
 void PlaneView(Plane *p, double dt)
 {
-    mat3 mtmp;
     /*
     heading is pitch -> 45
     roll is roll
@@ -62,55 +61,56 @@ void PlaneView(Plane *p, double dt)
     p->roll += p->vroll;
     p->pitch += p->vpitch;
     p->heading += p->vheading;
-
+#if 0
     fmod(p->roll, 360);
     fmod(p->pitch, 360);
     fmod(p->heading, 360);
+#endif
+    glm_mat4d_identity(p->view);
 
-    glm_mat4_identity(p->view);
-
-    versor hlOr;
-    versor hlToBody;
-    versor ec2body;
-    versor q;
-    versor mViewOrientation;
+    versord hlOr;
+    versord hlToBody;
+    versord ec2body;
+    versord q;
+    versord mViewOrientation;
 
    // The quaternion rotating from the earth centered frame to the
     // horizontal local frame
-    glm_quat_from_lon_lat(hlOr, p->lon, p->lat);
+    glm_quatd_from_lon_lat(hlOr, p->lon, p->lat);
 
     // The rotation from the horizontal local frame to the basic view orientation
-    glm_quat_from_ypr(hlToBody, p->heading, p->pitch, p->roll);
+    glm_quatd_from_ypr(hlToBody, p->heading, p->pitch, p->roll);
 
     // Compute the eyepoints orientation and position
     // wrt the earth centered frame - that is global coorinates
-    glm_quat_mul(hlOr, hlToBody, ec2body);
+    glm_quatd_mul(hlOr, hlToBody, ec2body);
 
     // The cartesian position of the basic view coordinate
-    vec3 position = {p->X, p->Y, p->Z};
+    vec3d position = {p->X, p->Y, p->Z};
 
     // This is rotates the x-forward, y-right, z-down coordinate system the where
     // simulation runs into the OpenGL camera system with x-right, y-up, z-back.
-    glm_quat_init(q, -0.5, -0.5, 0.5, 0.5);
+    glm_quatd_init(q, -0.5, -0.5, 0.5, 0.5);
 
 //    p->_absolute_view_pos = position;
-    glm_quat_mul(ec2body, q, mViewOrientation);
+    glm_quatd_mul(ec2body, q, mViewOrientation);
 
-    mat4 rotation;
-    versor view_inv;
-    glm_quat_inv(mViewOrientation, view_inv);
-    glm_quat_mat4(view_inv, rotation);
+    mat4d rotation;
+    versord view_inv;
+    glm_quatd_inv(mViewOrientation, view_inv);
+    glm_quatd_mat4d(view_inv, rotation);
 
-    glm_mat4_mul(p->view, rotation, p->view);
-    glm_translate(p->view, (vec3){-p->X, -p->Y, -p->Z});
+//    printf("%f,%f,%f -> %f %f %f %f\n",p->heading, p->pitch, p->roll, view_inv[0],view_inv[1],view_inv[2],view_inv[3]);
+
+
+    glm_mat4d_mul(p->view, rotation, p->view);
+    glm_translated(p->view, (vec3d){-p->X, -p->Y, -p->Z});
 }
 
 
 
 void plane_set_attitude(Plane *p, double roll, double pitch, double heading)
 {
-    mat3 mtmp;
-
     p->roll = roll;
     p->pitch = pitch;
     p->heading = heading;
