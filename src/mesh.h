@@ -31,7 +31,7 @@ typedef struct{
 
     GLuint n_vertices;
 
-    SGVec3d *verts;
+    SGVec3f *verts;
     size_t nverts; /*Number of elements in the vector*/
     size_t vert_esize; /*We have room for esize elements (i.e size NOT in bytes)*/
 

@@ -42,7 +42,7 @@ VGroup *vgroup_init(VGroup *self, size_t size, bool self_clear)
         memset(self, 0, sizeof(VGroup));
 
     self->vert_esize = size;
-    self->verts = calloc(self->vert_esize, sizeof(SGVec3d));
+    self->verts = calloc(self->vert_esize, sizeof(SGVec3f));
     self->texs = calloc(size, sizeof(SGVec2f));
     self->indices = calloc(size, sizeof(indice_t));
 //    printf("allocated %d indices at %p\n",size,self->indices);
@@ -147,7 +147,7 @@ Mesh *mesh_prepare(Mesh *self)
         glBindBuffer(GL_ARRAY_BUFFER, group->vertex_buffer);
         glBufferData(
             GL_ARRAY_BUFFER,
-            group->nverts*sizeof(SGVec3d),
+            group->nverts*sizeof(SGVec3f),
             group->verts,
             GL_STATIC_DRAW
         );
@@ -232,7 +232,7 @@ size_t vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex, int global_idx)
 #endif
     if(self->nverts == self->vert_esize){
         self->vert_esize += 16;
-        self->verts = reallocarray(self->verts,  self->vert_esize, sizeof(SGVec3d));
+        self->verts = reallocarray(self->verts,  self->vert_esize, sizeof(SGVec3f));
         if(!self->verts){
             printf("Realloc failure\n");
             exit(-1);
@@ -240,7 +240,7 @@ size_t vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex, int global_idx)
     }
     /*If we get here, we need to add v into the array*/
     rv = self->nverts;
-    self->verts[rv] = (SGVec3d){v->x,v->y,v->z};
+    self->verts[rv] = (SGVec3f){v->x,v->y,v->z};
     self->texs[rv].x = tex->x;
     self->texs[rv].y = tex->y;
     self->nverts++;
@@ -431,7 +431,7 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_
         glVertexAttribPointer(
             position,
             3,
-            GL_DOUBLE,
+            GL_FLOAT,
             GL_FALSE,
             0, /*no need to specify stride on single attribute vectors*/
             (void*)0
