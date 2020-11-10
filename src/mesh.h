@@ -2,6 +2,8 @@
 #define MESH_H
 
 #include <GL/glut.h>
+#include <cglm/cglm.h>
+
 #include "btg-io.h"
 
 #define USE_INT_INDICES 0
@@ -50,6 +52,8 @@ typedef struct{
     GLuint n_groups;
 
     VGroup *groups;
+
+    mat4d transformation;
 }Mesh;
 
 
@@ -59,7 +63,7 @@ void mesh_free(Mesh *self);
 
 size_t mesh_get_size(Mesh *self, bool data_only);
 //void mesh_render(Mesh *self, SGVec3d *epos, double vis);
-void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords);
+void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_mvp, mat4d vp);
 
 Mesh *mesh_prepare(Mesh *self);
 

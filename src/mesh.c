@@ -1,3 +1,4 @@
+#include "cglm/mat4d.h"
 #define _GNU_SOURCE
 #define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
@@ -85,7 +86,7 @@ Mesh *mesh_new(size_t size)
     if(rv){
         rv->groups = calloc(size, sizeof(VGroup));
         rv->n_groups = size;
-
+        glm_mat4d_identity(rv->transformation);
     }
     return rv;
 }
@@ -307,6 +308,7 @@ Mesh *load_terrain(const char *filename)
         size_t g_idx = 0;
         start = 0;
         end = 1;
+        glm_translated(rv->transformation, (vec3d){terrain->gbs_center.x, terrain->gbs_center.y, terrain->gbs_center.z});
 
       //  printf("tri_materials.size: %d\n", terrain->tri_materials->len);
         while ( start < terrain->tri_materials->len ) {
@@ -366,7 +368,7 @@ Mesh *load_terrain(const char *filename)
                     vert.y = tpv[1];
                     vert.z = tpv[2];
 #endif
-#if 1
+#if 0
                     vert.x += terrain->gbs_center.x;
                     vert.y += terrain->gbs_center.y;
                     vert.z += terrain->gbs_center.z;
@@ -394,15 +396,24 @@ Mesh *load_terrain(const char *filename)
 //    rv->terrain = terrain;
     sg_bin_object_free(terrain);
     printf("Done loading terrain %s\n",filename);
+//    mesh_dump_buffer(rv);
+//    exit(0);
     return rv;
 }
 
-void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords)
+void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_mvp, mat4d vp)
 {
     VGroup *group;
+    mat4d mvp;
+    mat4 mvpf;
+
+    glm_mat4d_mul(vp, self->transformation, mvp);
+    glm_mat4d_ucopyf(mvp, mvpf);
+    glUniformMatrix4fv(u_mvp, 1, GL_FALSE, mvpf[0]);
 
     for(GLuint i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
+
         glActiveTexture(GL_TEXTURE0 );
         glBindTexture(GL_TEXTURE_2D, group->tex_id);
 
