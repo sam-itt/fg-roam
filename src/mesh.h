@@ -27,6 +27,7 @@ typedef GLushort indice_t;
 
 typedef struct{
     GLuint tex_id;
+    char *tex_name;
 
     GLuint n_vertices;
 

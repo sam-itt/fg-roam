@@ -79,6 +79,11 @@ size_t vgroup_get_size(VGroup *self, bool data_only)
     return rv;
 }
 
+static int vgroup_compare(VGroup *g1, VGroup *g2)
+{
+    return strcmp(g1->tex_name, g2->tex_name);
+}
+
 Mesh *mesh_new(size_t size)
 {
     Mesh *rv;
@@ -395,6 +400,10 @@ Mesh *load_terrain(const char *filename)
     }
 //    rv->terrain = terrain;
     sg_bin_object_free(terrain);
+
+    qsort(rv->groups, rv->n_groups, sizeof(VGroup), (__compar_fn_t)vgroup_compare);
+
+
     printf("Done loading terrain %s\n",filename);
 //    mesh_dump_buffer(rv);
 //    exit(0);
