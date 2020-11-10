@@ -19,6 +19,8 @@
 #include "geodesy.h"
 #include "quat-ext.h"
 
+#define USE_GHASH_LOOKUP 1
+
 #if 0
 VGroup *vgroup_new(size_t size)
 {
@@ -45,7 +47,7 @@ VGroup *vgroup_init(VGroup *self, size_t size, bool self_clear)
 //    printf("allocated %d indices at %p\n",size,self->indices);
     self->n_vertices = size;
 
-#if 1
+#if USE_GHASH_LOOKUP
     self->global_lookup = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
 #endif
 
@@ -58,7 +60,7 @@ void vgroup_dispose(VGroup *self)
     free(self->texs);
     free(self->indices);
 
-#if 1
+#if USE_GHASH_LOOKUP
     g_hash_table_unref(self->global_lookup);
 #endif
 
@@ -199,14 +201,14 @@ void mesh_dump_buffer(Mesh *self)
 size_t vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex, int global_idx)
 {
     size_t rv = 0;
-#if 0
+#if USE_GHASH_LOOKUP
     gpointer existing;
 
     existing = g_hash_table_lookup(self->global_lookup, GINT_TO_POINTER(global_idx));
     if(existing){
         rv = GPOINTER_TO_UINT(existing);
         if(self->texs[rv].x == tex->x && self->texs[rv].y == tex->y){
-            printf("Re-using vertex %d\n",global_idx);
+            //printf("Re-using vertex %d\n",global_idx);
             return rv;
         }
     }
@@ -225,7 +227,7 @@ size_t vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex, int global_idx)
     self->texs[rv].x = tex->x;
     self->texs[rv].y = tex->y;
     self->nverts++;
-#if 0
+#if USE_GHASH_LOOKUP
     g_hash_table_insert(self->global_lookup, GINT_TO_POINTER(global_idx), GUINT_TO_POINTER(rv));
 #endif
     return(rv);
