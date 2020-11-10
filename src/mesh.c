@@ -159,7 +159,7 @@ Mesh *mesh_prepare(Mesh *self)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->element_buffer);
         glBufferData(
             GL_ELEMENT_ARRAY_BUFFER,
-            group->n_vertices*sizeof(indice_t),
+            group->n_indices*sizeof(indice_t),
             group->indices,
             GL_STATIC_DRAW
         );
@@ -180,6 +180,17 @@ void mesh_dump_buffer(Mesh *self)
     printf("Dumping Mesh\n");
     for(GLuint i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
+        printf("Group #%d (%s):\n",i, group->tex_name);
+        printf("%d indices\n", group->n_indices);
+        if(group->n_indices%3 != 0)
+            printf("WARNING group #%d as a number of vertices that don't match a set of triangles\n",i);
+        for(int j = 0; j < group->n_indices; j++){
+            printf("#%d: %0.5f %0.5f %0.5f\n",
+                   j, group->verts[group->indices[j]].x,
+                   group->verts[group->indices[j]].y,
+                   group->verts[group->indices[j]].z);
+        }
+#if 0
         printf("Group %d/%d %d vertices\n",i ,self->n_groups-1, group->n_vertices);
         for(GLuint j = 0; j < group->n_vertices; j++){
             printf("#%d: %0.5f %0.5f %0.5f\n",
@@ -192,7 +203,7 @@ void mesh_dump_buffer(Mesh *self)
                 group->texs[group->indices[j]].y
             );
         }
-
+#endif
     }
     printf("Mesh dumped\n");
 
@@ -316,7 +327,8 @@ Mesh *load_terrain(const char *filename)
             // write groups
             vgroup_init(&(rv->groups[g_idx]), (end-start)*3, false);
             rv->groups[g_idx].tex_id = texture_get_id_by_name(material);
-            size_t vidx = 0;
+            rv->groups[g_idx].tex_name = strdup(material);
+            rv->groups[g_idx].n_indices = 0;
             for (guint  i = start; i < end; ++i ) {
                 GArray *tri_v = g_ptr_array_index(terrain->tris_v, i);
                 GArray *tri_c = g_ptr_array_index(terrain->tris_c, i);
@@ -367,9 +379,8 @@ Mesh *load_terrain(const char *filename)
                             "what can be stored with current sizeof(indice_t)(%d), Undefined behavior from now\n",
                             filename, g_idx, idx, sizeof(indice_t));
                     }
-                    rv->groups[g_idx].indices[vidx] = idx;
-
-                    vidx++;
+                    rv->groups[g_idx].indices[rv->groups[g_idx].n_indices] = idx;
+                    rv->groups[g_idx].n_indices++;
                 }
                 //printf("\n");
             }
@@ -418,7 +429,7 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords)
         );
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->element_buffer);
-        glDrawElements(GL_TRIANGLES, group->n_vertices, INDICE_TYPE, 0);
+        glDrawElements(GL_TRIANGLES, group->n_indices, INDICE_TYPE, 0);
 
         glDisableVertexAttribArray(position);
         glDisableVertexAttribArray(texcoords);
