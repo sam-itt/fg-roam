@@ -516,7 +516,7 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_
             3,
             GL_FLOAT,
             GL_FALSE,
-            0, /*no need to specify stride on single attribute vectors*/
+            sizeof(SGVec3f), /*If we don't specify the stride, apitrace ain't so happy*/
             (void*)0
         );
 
@@ -527,7 +527,7 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_
             2,
             GL_FLOAT,
             GL_FALSE,
-            0, /*As above*/
+            sizeof(SGVec2f), /*As above*/
             (void*)0
         );
 
