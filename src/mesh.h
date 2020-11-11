@@ -44,8 +44,6 @@ typedef struct{
     GLuint element_buffer;
     GLuint vertex_buffer;
     GLuint texs_buffer;
-
-    GHashTable *global_lookup;
 }VGroup;
 
 
