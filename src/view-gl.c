@@ -213,57 +213,6 @@ int main(int argc, char **argv)
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_LIGHTING);
 
-
-    texture_new("../../textures/asphalt.png","Freeway");
-    texture_new("../../textures/gravel.png","Railroad");
-    texture_new("../../textures/water-lake.png","Stream");
-    texture_new("../../textures/water-lake.png","Watercourse");
-    texture_new("../../textures/water-lake.png","Canal");
-    texture_new("../../textures/city1.png","Urban");
-    texture_new("../../textures/drycrop1.png","DryCrop");
-    texture_new("../../textures/irrcrop1.png","IrrCrop");
-    texture_new("../../textures/mixedcrop1.png","ComplexCrop");
-    texture_new("../../textures/naturalcrop1.png","NaturalCrop");
-    texture_new("../../textures/cropgrass1.png","CropGrass");
-    texture_new("../../textures/cropgrass1.png","Grassland");
-    texture_new("../../textures/shrub1.png","Scrub");
-    texture_new("../../textures/deciduous1.png","DeciduousForest");
-    texture_new("../../textures/forest1a.png","EvergreenForest");
-    texture_new("../../textures/mixedforest.png","MixedForest");
-    texture_new("../../textures/shrub1.png","Sclerophyllous");
-    texture_new("../../textures/airport.png","Airport");
-    texture_new("../../textures/airport.png","Grass");
-    texture_new("../../textures/rock.png","BarrenCover");
-    texture_new("../../textures/glacier3.png","Glacier");
-    texture_new("../../textures/golfcourse1.png","GolfCourse");
-    texture_new("../../textures/airport.png","Greenspace");
-    texture_new("../../textures/deciduous1.png","Heath");
-    texture_new("../../textures/city1.png","Industrial");
-    texture_new("../../textures/water-lake.png","Lake");
-    texture_new("../../textures/rock.png","OpenMining");
-    texture_new("../../textures/irrcrop1.png","Orchard");
-    texture_new("../../textures/asphalt.png","Road");
-    texture_new("../../textures/rock.png","Rock");
-    texture_new("../../textures/Town1.png","Town");
-    texture_new("../../textures/gravel.png","Transport");
-    texture_new("../../textures/irrcrop1.png","Vineyard");
-    texture_new("../../textures/Runway/lf_dbl_solid_yellow.png","lf_dbl_solid_yellow");
-    texture_new("../../textures/Runway/lf_runway_hold_border.png","lf_runway_hold_border");
-    texture_new("../../textures/Runway/pa_0l.png","pa_0l");
-    texture_new("../../textures/Runway/pa_2l.png","pa_2l");
-    texture_new("../../textures/Runway/pa_2r.png","pa_2r");
-    texture_new("../../textures/Runway/pa_4r.png","pa_4r");
-    texture_new("../../textures/Runway/pa_aim.png","pa_aim");
-    texture_new("../../textures/Runway/pa_centerline.png","pa_centerline");
-    texture_new("../../textures/Runway/pa_dspl_arrows.png","pa_dspl_arrows");
-    texture_new("../../textures/Runway/pa_dspl_thresh.png","pa_dspl_thresh");
-    texture_new("../../textures/Runway/pa_rest.png","pa_rest");
-    texture_new("../../textures/Runway/pa_shoulder_f1.png","pa_shoulder_f");
-    texture_new("../../textures/Runway/pa_threshold.png","pa_threshold");
-    texture_new("../../textures/Runway/pc_helipad.png","pc_heli");
-    texture_new("../../textures/Runway/pc_tiedown.png","pc_tiedown");
-    texture_new("../../textures/Runway/grass_rwy.png","grass_rwy");
-
     lflg = mesh_new_from_file("../../Terrain/e000n40/e005n45/LFLG.btg.gz");
 
     plane = plane_new(); /*implicit  0 0 0 yaw pitch roll*/
