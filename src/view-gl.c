@@ -55,7 +55,7 @@ unsigned int global_accelerator = 1;
 
 Mesh *lflg = NULL;
 
-void render(double vis)
+void render(double vis, mat4 mv)
 {
     SGBucket **buckets;
     Mesh *m;
@@ -65,11 +65,11 @@ void render(double vis)
     for(int i = 0; buckets[i] != NULL; i++){
         m = sg_bucket_get_mesh(buckets[i]);
             if(m){
-                mesh_render_buffer(m, a_position, a_texcoords);
+                mesh_render_buffer(m, a_position, a_texcoords, u_mvpmtx, mv);
             }
     }
     if(lflg)
-        mesh_render_buffer(lflg, a_position, a_texcoords);
+        mesh_render_buffer(lflg, a_position, a_texcoords, u_mvpmtx, mv);
 }
 
 int handle_keyboard(SDL_KeyboardEvent *event)
@@ -385,14 +385,13 @@ int main(int argc, char **argv)
 
         glm_mat4_identity(mvp);
         glm_mat4_mul(projection_matrix, plane->view, mvp);
-        glUniformMatrix4fv(u_mvpmtx, 1, GL_FALSE, mvp[0]);
 
         glm_mat4_identity(skyview);
 //        glm_rotate_y(skyview, glm_rad(-plane->heading), skyview);
 //        glm_rotate_x(skyview, glm_rad(plane->pitch), skyview);
 
         glEnable(GL_DEPTH_TEST);   // skybox should be drawn behind anything else
-        render(10000.0);
+        render(10000.0, mvp);
         skybox_render(skybox, skyview);
 
         SDL_GL_SwapWindow(window);
