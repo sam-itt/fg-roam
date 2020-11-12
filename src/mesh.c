@@ -1,4 +1,3 @@
-#include "cglm/mat4d.h"
 #define _GNU_SOURCE
 #define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
@@ -19,230 +18,317 @@
 
 #include "geodesy.h"
 #include "quat-ext.h"
+#include "cglm/mat4d.h"
 
-#define vertex_equal(v1, v2) (((v1)->x == (v2)->x) && ((v1)->y == (v2)->y) && ((v1)->z == (v2)->z))
-#define textures_equal(t1, t2) ((t1)->x == (t2)->x) && ((t1)->y == (t2)->y)
+#define position_equal(p1, p2) (((p1)->x == (p2)->x) && ((p1)->y == (p2)->y) && ((p1)->z == (p2)->z))
+#define texcoord_equal(t1, t2) ((t1)->x == (t2)->x) && ((t1)->y == (t2)->y)
 
-#if 0
-VGroup *vgroup_new(size_t size)
+#define VTX_CHUNK 8
+
+/**
+ * @brief Inits a VGroup to make it able to hold as much as @p n_triangles
+ * triangles. Will fail (return NULL) if the group as already been inited
+ *
+ * @param self The VGroup to work on
+ * @param material The material name that will serve to lookup the texture
+ * @param n_triangles The VGroup will have enough storage for n_triangles
+ * triangles
+ * @return self on success, NULL on failure.
+ */
+VGroup *vgroup_init(VGroup *self, const char *material, size_t n_triangles)
 {
-    VGroup *rv;
+    /*Non-inited vgroups are memset'ed to 0 by the parent Mesh*/
+    if(self->indices)
+        return NULL;
 
-    rv = calloc(1, sizeof(VGroup));
-    if(rv){
-        rv->verts = calloc(size, sizeof(SGVec3d));
-        rv->texs = calloc(size, sizeof(SGVec2f));
-    }
-    return rv;
-}
-#endif
+    self->texture = texture_get_by_name(material);
 
-VGroup *vgroup_init(VGroup *self, size_t size, bool self_clear)
-{
-    if(self_clear)
-        memset(self, 0, sizeof(VGroup));
+    /*Triangles are described by a set of 3 indices each*/
+    self->allocated_indices = n_triangles * 3;
+    self->indices = calloc(self->allocated_indices, sizeof(indice_t));
 
-    self->vert_esize = size;
-    self->verts = calloc(self->vert_esize, sizeof(SGVec3f));
-    self->texs = calloc(size, sizeof(SGVec2f));
-    self->indices = calloc(size, sizeof(indice_t));
-//    printf("allocated %d indices at %p\n",size,self->indices);
-    self->n_vertices = size;
+    /* We have the number of indices, but we don't know yet how many different
+     * vertices (unique set of positions/texcoords/normals/etc) these indices will
+     * index into. Start off with 30% less vertices than indices (optimistic) and
+     * then grow by VTX_CHUNK increments.
+     * This is not optimal and wastes memory and time. Better count the actual number
+     * and allocate just as needed
+     * */
+    self->allocated_vertices = self->allocated_indices * 0.7;
+    self->positions = malloc(sizeof(SGVec3f)*self->allocated_vertices);
+    self->texcoords = malloc(sizeof(SGVec2f)*self->allocated_vertices);
 
     return self;
 }
 
-void vgroup_grow_by(VGroup *self, size_t size)
-{
-    self->vert_esize += size;
-    self->verts = realloc(self->verts, self->vert_esize*sizeof(SGVec3f));
-    self->texs = realloc(self->texs, self->vert_esize * sizeof(SGVec2f));
-    self->indices = realloc(self->indices, self->vert_esize * sizeof(indice_t));
-//    printf("allocated %d indices at %p\n",size,self->indices);
-//    self->n_vertices += size;
-}
-
+/**
+ * @brief Release memory allocated by the VGgroup.
+ *
+ * You should not call this function directly, the
+ * parent Mesh will take care of the lifecycle of
+ * its vgroups.
+ *
+ * @param self The VGroup worked on
+ */
 void vgroup_dispose(VGroup *self)
 {
-    free(self->verts);
-    free(self->texs);
-    free(self->indices);
+    if(self->indices)
+        free(self->indices);
+    /*TODO: Interwine the coordinates and propertires to deal with all of the
+     * at once*/
+    if(self->positions)
+        free(self->positions);
+    if(self->texcoords)
+        free(self->texcoords);
+    glDeleteBuffers(NBuffers, self->buffers);
 }
 
-size_t vgroup_get_size(VGroup *self, bool data_only)
+/**
+ * @brief Add a vertex (set of coordinates, texture coordinates, etc.)
+ * to the VGgroup at hand and returns its index within the vgroup. That is
+ * probably not the function you are looking for.
+ *
+ * This function will make sure that said vertex appears only once and
+ * thus will return a pre-existing index if set passed-in data is already
+ * known.
+ *
+ * @param self The VGroup to work on
+ * @param v The vertex coordinates
+ * @param tex The texture coordinates associated with the vertex
+ * @return The index of the vertex with said properties, or -1 or failure
+ * (can't allocate more memory when needed)
+ *
+ * @see vgroup_add_triangle - This is the function you might be looking for
+ */
+long vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex)
 {
-    size_t rv = 0;
+    long rv = 0;
 
-    rv += sizeof(SGVec3d) * self->vert_esize;
-    rv += sizeof(SGVec2f) * self->vert_esize;
-    rv += sizeof(indice_t) * self->n_vertices;
-    if(!data_only)
-        rv += sizeof(VGroup);
-    return rv;
-}
-
-static int vgroup_compare(VGroup *g1, VGroup *g2)
-{
-    return strcmp(g1->tex_name, g2->tex_name);
-}
-
-size_t vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex)
-{
-    size_t rv = 0;
-
-    bool dump = !strcmp(self->tex_name,"pa_threshold");
-
-    if(dump){
-        printf("vgroup_add_vertex\n"
-               "\tposition: %f %f %f\n"
-               "\ttex: %f %f\n",
-            v->x,
-            v->y,
-            v->z,
-            tex->x,
-            tex->y
-        );
-    }
-
-    for(int i = 0; i < self->nverts; i++){
-        if(vertex_equal(&(self->verts[i]), v) && textures_equal(&(self->texs[i]), tex)){
-            if(dump){
-                printf("Re-using vertex %d (%f,%f,%f) - (%f,%f)\n",i,
-                    v->x, v->y, v->z,
-                    tex->x, tex->y
-                );
-            }
+    for(int i = 0; i < self->n_vertices; i++){
+        if(position_equal(&(self->positions[i]), v) && texcoord_equal(&(self->texcoords[i]), tex)){
             return i;
         }
     }
 
-    if(self->nverts == self->vert_esize){
-        self->vert_esize += 16;
-        self->verts = reallocarray(self->verts,  self->vert_esize, sizeof(SGVec3f));
-        if(!self->verts){
-            printf("Realloc failure\n");
-            exit(-1);
+    if(self->n_vertices == self->allocated_vertices){
+        void *tmp;
+        /*Grow 'positions' attribute*/
+        self->allocated_vertices += VTX_CHUNK;
+        tmp = reallocarray(self->positions, self->allocated_indices, sizeof(SGVec3f));
+        if(!tmp){
+            self->allocated_vertices -= VTX_CHUNK;
+            return -1;
         }
+        self->positions = tmp;
+        /*Grow 'texcoords' attribute*/
+        tmp = reallocarray(self->texcoords, self->allocated_indices, sizeof(SGVec2f));
+        if(!tmp){
+            /* Half-assed situation where the positions have been successfuly grown
+             * but not the texture. We still have to fail and consider the lowest
+             * common denominator. Better interwine positions+texcoords(+normals)
+             * and fail at once*/
+            self->allocated_vertices -= VTX_CHUNK;
+            return -1;
+        }
+        self->texcoords = tmp;
     }
-    /*If we get here, we need to add v into the array*/
-    rv = self->nverts;
-    self->verts[rv] = (SGVec3f){v->x,v->y,v->z};
-    self->texs[rv].x = tex->x;
-    self->texs[rv].y = tex->y;
-    self->nverts++;
 
-    if(dump){
-        printf("Added as vertex %d: (%f,%f,%f) - (%f,%f)\n",rv,
-            self->verts[rv].x, self->verts[rv].y, self->verts[rv].z,
-            self->texs[rv].x, self->texs[rv].y
-        );
-    }
+    /*If we get here, we need to add v into the array*/
+    rv = self->n_vertices;
+    self->positions[rv] = (SGVec3f){v->x,v->y,v->z};
+    self->texcoords[rv].x = tex->x;
+    self->texcoords[rv].y = tex->y;
+    self->n_vertices++;
+
     return(rv);
 }
 
-
-void vgroup_add_triangle(VGroup *self, SGVec3d *v1, SGVec2f *t1, SGVec3d *v2, SGVec2f *t2, SGVec3d *v3, SGVec2f *t3)
+/**
+ * @brief Add a triangle to the VGroup
+ *
+ * @param self The VGroup to work on
+ * @param v1 Position of the first vertex of the triangle
+ * @param v2 Position of the second vertex of the triangle
+ * @param v3 Position of the thrid vertex of the triangle
+ * @param t1 Texture coordinates of the first vertex of the triangle
+ * @param t2 Texture coordinates of the second vertex of the triangle
+ * @param t3 Texture coordinates of the third vertex of the triangle
+ * @return true on success, false on failure
+ */
+bool vgroup_add_triangle(VGroup *self, SGVec3d *v1, SGVec2f *t1, SGVec3d *v2, SGVec2f *t2, SGVec3d *v3, SGVec2f *t3)
 {
-    size_t idx1, idx2, idx3;
+    size_t idx[3];
 
-    idx1 = vgroup_add_vertex(self, v1, t1);
-    idx2 = vgroup_add_vertex(self, v2, t2);
-    idx3 = vgroup_add_vertex(self, v3, t3);
+    idx[0] = vgroup_add_vertex(self, v1, t1);
+    idx[1] = vgroup_add_vertex(self, v2, t2);
+    idx[2] = vgroup_add_vertex(self, v3, t3);
 
-    if(idx1 > INDICE_MAX || idx2 > INDICE_MAX || idx3 > INDICE_MAX){
-        printf(
-            "WARNING: Terrain %s Group %d has indice value %d greather than "
-            "what can be stored with current sizeof(indice_t)(%d), Undefined behavior from now\n",
-            "CURRENT FILE", -1, idx1, sizeof(indice_t));
+    /* TODO: Auto-split the current group into another group if we reach the maximum number
+     * of indices allowed by the storage type (USHORT is the most likely to have the problem)*/
+    for(int i = 0; i < 3; i++){
+        if(idx[i] < 0)
+            return false;
+        if(idx[i] > INDICE_MAX){
+            printf(
+                "WARNING: Terrain %s Group %p has indice value %d greather than "
+                "what can be stored with current sizeof(indice_t)(%d), Undefined behavior from now\n",
+                "CURRENT FILE", self, idx[i], sizeof(indice_t)
+            );
+        }
     }
 
+    self->indices[self->n_indices] = idx[0];
+    self->indices[self->n_indices+1] = idx[1];
+    self->indices[self->n_indices+2] = idx[2];
+    self->n_indices += 3;
 
-    self->indices[self->n_indices] = idx1;
-    self->n_indices++;
-    self->indices[self->n_indices] = idx2;
-    self->n_indices++;
-    self->indices[self->n_indices] = idx3;
-    self->n_indices++;
+    return true;
 }
 
+/**
+ * @brief Computes the memory used by a VGroup
+ *
+ * @param self The VGroup to work on
+ * @param data_only if true, only the actual vertex data is
+ * accounted for, discarding counters, handles, and extra
+ * memory allocated but not used to store vertices.
+ * @return VGroup size in bytes
+ */
+size_t vgroup_get_size(VGroup *self, bool data_only)
+{
+    size_t rv = 0;
 
+    if(data_only){
+        rv += sizeof(SGVec3f) * self->n_vertices;
+        rv += sizeof(SGVec2f) * self->n_vertices;
+        rv += sizeof(indice_t) * self->n_indices;
+    }else{
+        rv += sizeof(SGVec3f) * self->allocated_vertices;
+        rv += sizeof(SGVec2f) * self->allocated_vertices;
+        rv += sizeof(indice_t) * self->allocated_indices;
+        rv += sizeof(VGroup);
+    }
+    return rv;
+}
+
+/**
+ * @brief Creates a new mesh with @p size groups.
+ *
+ * @param size Number of vgroups.
+ * @return Newly-created mesh on success, NULL otherwise.
+ *
+ * @see mesh_new_empty
+ * @see mesh_set_size
+ */
 Mesh *mesh_new(size_t size)
+{
+    Mesh *rv;
+
+    rv = mesh_new_empty();
+    if(!mesh_set_size(rv, size)){
+        mesh_free(rv);
+        return NULL;
+    }
+    return rv;
+}
+
+/**
+ * @brief Creates a new mesh with no storage for groups.
+ *
+ * Size must be set before starting to access groups
+ *
+ * @return Newly-created group on success, NULL otherwise.
+ *
+ * @see mesh_set_size
+ */
+Mesh *mesh_new_empty(void)
 {
     Mesh *rv;
     rv = calloc(1, sizeof(Mesh));
     if(rv){
-        rv->groups = calloc(size, sizeof(VGroup));
-        rv->n_groups = size;
         glm_mat4d_identity(rv->transformation);
     }
     return rv;
 }
 
+/**
+ * Creates and prepares a new mesh from a BTG file
+ *
+ * @param filename The filename to read from
+ * @return a newly created and prepared Mesh
+ */
 Mesh *mesh_new_from_file(const char *filename)
 {
     Mesh *rv;
-    rv = load_terrain(filename);
+    rv = mesh_new_from_btg(filename);
     if(rv)
         mesh_prepare(rv);
     return rv;
 }
 
-
+/**
+ * @brief Release memory hold by the mesh
+ *
+ * @param self The mesh to free
+ */
 void mesh_free(Mesh *self)
 {
     VGroup *group;
 
-    for(GLuint i = 0; i < self->n_groups; i++){
+    for(size_t i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
         vgroup_dispose(group);
     }
-    free(self->groups);
+    if(self->groups)
+        free(self->groups);
     free(self);
 }
 
-size_t mesh_get_size(Mesh *self, bool data_only)
+bool mesh_set_size(Mesh *self, size_t size)
 {
-    VGroup *group;
-    size_t rv;
+    VGroup *groups;
+    size_t old_size;
 
-    rv = 0;
-
-    for(GLuint i = 0; i < self->n_groups; i++){
-        group = &(self->groups[i]);
-        rv += vgroup_get_size(group, data_only);
+    old_size = self->n_groups;
+    groups = realloc(self->groups, sizeof(VGroup) * size);
+    if(groups){
+        self->groups = groups;
+        memset(self->groups+(old_size*sizeof(VGroup)), 0, (size-old_size)*sizeof(VGroup));
+        self->n_groups = size;
     }
-
-    if(!data_only)
-        rv += sizeof(Mesh);
-    return rv;
+    return groups != NULL;
 }
 
-int mesh_get_vgroup_idx(Mesh *self, const char *material, size_t create_size)
+/**
+ * @brief Adds a new vgroup in @p self that can hold up to @p n_triangles
+ * triangles.
+ *
+ * There can be more than one group with the same material within the same
+ * mesh, therefore this function will always use the first available vgroup
+ * slot in the mesh.
+ *
+ * @param self The mesh to work on.
+ * @param material Material name (usually matches texture and other properties)
+ * @param n_triangles The number of triangles that make up this group
+ * @return The VGroup or NULL on failure
+ */
+VGroup *mesh_add_vgroup(Mesh *self, const char *material, size_t n_triangles)
 {
-    int k;
-    for(k = 0; k < self->n_groups; k++){
-        if(self->groups[k].tex_name == NULL)
-            break;
-        if(!strcmp(self->groups[k].tex_name, material)){
-            printf("Found existing VGroup #%d for material %s\n", k, material);
-            vgroup_grow_by(&(self->groups[k]), create_size);
-            return k;
+    for(int i = 0; i < self->n_groups; i++){
+        /*First available group will have all it's pointers set to NULL*/
+        if(!self->groups[i].indices){
+            return vgroup_init(&(self->groups[i]), material, n_triangles);
         }
     }
-
-    if(k == self->n_groups)
-        return -1;
-
-    vgroup_init(&(self->groups[k]), create_size, true);
-    self->groups[k].tex_id = texture_get_id_by_name(material);
-    self->groups[k].tex_name = strdup(material);
-    self->groups[k].n_indices = 0;
-
-    printf("Inited VGroup #%d for material %s\n", k, material);
-
-    return k;
+    return NULL;
 }
 
+/**
+ * @brief Allocate various OpenGL resources for rendering. Just need to be
+ * called once.
+ *
+ * @param self The mesh to work on.
+ */
 Mesh *mesh_prepare(Mesh *self)
 {
 
@@ -250,27 +336,25 @@ Mesh *mesh_prepare(Mesh *self)
     for(unsigned int i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
 
-        glGenBuffers(1, &(group->vertex_buffer));
-        glBindBuffer(GL_ARRAY_BUFFER, group->vertex_buffer);
-        printf("group->nverts: %d, sizeof(SGVec3f): %d\n",group->nverts, sizeof(SGVec3f));
+        glGenBuffers(NBuffers, group->buffers);
+
+        glBindBuffer(GL_ARRAY_BUFFER, group->buffers[PositionBuffer]);
         glBufferData(
             GL_ARRAY_BUFFER,
-            group->nverts*sizeof(SGVec3f),
-            group->verts,
+            group->n_vertices*sizeof(SGVec3f),
+            group->positions,
             GL_STATIC_DRAW
         );
 
-        glGenBuffers(1, &group->texs_buffer);
-        glBindBuffer(GL_ARRAY_BUFFER, group->texs_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, group->buffers[TexCoordBuffer]);
         glBufferData(
             GL_ARRAY_BUFFER,
-            group->nverts*sizeof(SGVec2f),
-            group->texs,
+            group->n_vertices*sizeof(SGVec2f),
+            group->texcoords,
             GL_STATIC_DRAW
         );
 
-        glGenBuffers(1, &(group->element_buffer));
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->element_buffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->buffers[ElementBuffer]);
         glBufferData(
             GL_ELEMENT_ARRAY_BUFFER,
             group->n_indices*sizeof(indice_t),
@@ -278,223 +362,24 @@ Mesh *mesh_prepare(Mesh *self)
             GL_STATIC_DRAW
         );
     }
-    printf("Mesh %p prepared\n", self);
-//    mesh_dump_buffer(self);
-    size_t sze = mesh_get_size(self, false);
-    printf("Size: %f %s\n", get_sized_unit_value(sze), get_sized_unit_text(sze));
-
-//    mesh_show_vertex_use(self);
-//    exit(0);
     return self;
 }
 
-void mesh_dump_buffer(Mesh *self)
-{
-    VGroup *group;
-    printf("Dumping Mesh\n");
-    for(GLuint i = 0; i < self->n_groups; i++){
-        group = &(self->groups[i]);
-        printf("Group #%d (%s):\n",i, group->tex_name);
-        printf("%d indices\n", group->n_indices);
-        if(group->n_indices%3 != 0)
-            printf("WARNING group #%d as a number of vertices that don't match a set of triangles\n",i);
-        for(int j = 0; j < group->n_indices; j++){
-            printf("#%d: %0.5f %0.5f %0.5f\n",
-                   j, group->verts[group->indices[j]].x,
-                   group->verts[group->indices[j]].y,
-                   group->verts[group->indices[j]].z);
-        }
-#if 0
-        printf("Group %d/%d %d vertices\n",i ,self->n_groups-1, group->n_vertices);
-        for(GLuint j = 0; j < group->n_vertices; j++){
-            printf("#%d: %0.5f %0.5f %0.5f\n",
-                   j, group->verts[group->indices[j]].x,
-                   group->verts[group->indices[j]].y,
-                   group->verts[group->indices[j]].z);
-            printf("#%d: %0.5f %0.5f\n",
-                j,
-                group->texs[group->indices[j]].x,
-                group->texs[group->indices[j]].y
-            );
-        }
-#endif
-    }
-    printf("Mesh dumped\n");
-
-}
-
-
-
-
-Mesh *load_terrain(const char *filename)
-{
-    Mesh *rv = NULL;
-    SGBinObject *terrain;
-    int printed = 0;
-
-    terrain = sg_bin_object_new();
-    sg_bin_object_load(terrain, filename);
-//    printf("Terrain version: %d\n",terrain->version);
-#if 0
-    if(!strcmp(filename,"/home/samuel/dev/Terrain/e000n40/e005n45/3039691.btg"))
-        sg_bin_object_write_obj(terrain, "/tmp/cversion.obj");
-#endif
-//    printf("Doing %s, triangle_count: %d\n", filename,terrain->tris_v->len);
-#if 0
-    const double *llh;
-    double xyz[3] = {terrain->gbs_center.x,
-        terrain->gbs_center.y,
-        terrain->gbs_center.z
-    };
-
-    llh = xyzllh(xyz);
-    versor hlOr;
-    versor p,q;
-
-    glm_quat_from_lon_lat(p, llh[1], llh[0]);
-    glm_quat_from_euler(q, 0, 0, glm_rad(180));
-
-    glm_quat_mul(p, q, hlOr);
-#endif
-
-    if ( terrain->tris_v->len != 0 ) {
-        //printf("# triangle groups\n");
-
-        guint start = 0;
-        guint end = 1;
-        char *material;
-        size_t ngroups = 0;
-        while ( start < terrain->tri_materials->len ) {
-            // find next group
-            material = g_ptr_array_index(terrain->tri_materials,start);
-           // printf("tri_materials.size: %d\n", terrain->tri_materials->len);
-            while ( (end < terrain->tri_materials->len) &&
-                    (!strcmp(material, g_ptr_array_index(terrain->tri_materials,end))) )
-            {
-                //printf("end = %d\n",end);
-                end++;
-            }
-
-            ngroups++;
-
-            start = end;
-            end = start + 1;
-        }
-
-   //     printf("Found %d groups\n", ngroups);
-
-        rv = mesh_new(ngroups);
-        size_t g_idx = 0;
-        start = 0;
-        end = 1;
-        glm_translated(rv->transformation, (vec3d){terrain->gbs_center.x, terrain->gbs_center.y, terrain->gbs_center.z});
-
-      //  printf("tri_materials.size: %d\n", terrain->tri_materials->len);
-        while ( start < terrain->tri_materials->len ) {
-            // find next group
-            material = g_ptr_array_index(terrain->tri_materials,start);
-            while ( (end < terrain->tri_materials->len) &&
-                    (!strcmp(material, g_ptr_array_index(terrain->tri_materials,end))) )
-            {
-           //     printf("end = %d\n",end);
-                end++;
-            }
-        //    printf("group = %d to %d\n",start, end-1);
-
-
-            // write group headers
-//            printf("\n");
-         //   printf("# usemtl %s\n", material);
-            // write groups
-            g_idx = mesh_get_vgroup_idx(rv, material, (end-start)*3);
-
-            for (guint  i = start; i < end; ++i ) {
-                GArray *tri_v = g_ptr_array_index(terrain->tris_v, i);
-                GArray *tri_c = g_ptr_array_index(terrain->tris_c, i);
-                GPtrArray *tri_tcs = g_ptr_array_index(terrain->tris_tcs,i);
-                if(tri_v->len != 3){
-                    printf("Wrong tri_v->len: %d\n",tri_v->len);
-                    exit(EXIT_FAILURE);
-                }
-                if(tri_c->len > 0)
-                    printf("Triangle %d has %d colors!\n",i,tri_c->len);
-
-           //     printf("\tTriangle %d: ",i);
-                if(tri_v->len != 3)
-                    printf("WARNING TRI_V IS NOT 3 !!\n");
-                for (guint j = 2; j < tri_v->len; ++j ) { //Edges of the triangle
-                    size_t idx;
-
-                    int a3, b3;
-                    GArray *ttcs3 = g_ptr_array_index(tri_tcs,0);
-                    if(terrain->version >= 10){
-                        a3 = g_array_index(tri_v, int, j);
-                        b3 = g_array_index(ttcs3, int, j);
-                    }else{
-                        a3 = g_array_index(tri_v, uint16_t, j);
-                        b3 = g_array_index(ttcs3, uint16_t, j);
-                    }
-                    SGVec3d vert3 = g_array_index(terrain->wgs84_nodes, SGVec3d, a3);
-                    SGVec2f tex3 = g_array_index(terrain->texcoords, SGVec2f, b3);
-
-                    int a2, b2;
-                    GArray *ttcs2 = g_ptr_array_index(tri_tcs,0);
-                    if(terrain->version >= 10){
-                        a2 = g_array_index(tri_v, int, j - 1);
-                        b2 = g_array_index(ttcs2, int, j - 1);
-                    }else{
-                        a2 = g_array_index(tri_v, uint16_t, j - 1);
-                        b2 = g_array_index(ttcs2, uint16_t, j - 1);
-                    }
-                    SGVec3d vert2 = g_array_index(terrain->wgs84_nodes, SGVec3d, a2);
-                    SGVec2f tex2 = g_array_index(terrain->texcoords, SGVec2f, b2);
-
-                    int a1, b1;
-                    GArray *ttcs1 = g_ptr_array_index(tri_tcs,0);
-                    if(terrain->version >= 10){
-                        a1 = g_array_index(tri_v, int, j - 2);
-                        b1 = g_array_index(ttcs1, int, j - 2);
-                    }else{
-                        a1 = g_array_index(tri_v, uint16_t, j - 2);
-                        b1 = g_array_index(ttcs1, uint16_t, j - 2);
-                    }
-                    SGVec3d vert1 = g_array_index(terrain->wgs84_nodes, SGVec3d, a1);
-                    SGVec2f tex1 = g_array_index(terrain->texcoords, SGVec2f, b1);
-
-                    vgroup_add_triangle(&(rv->groups[g_idx]),
-                        &vert1, &tex1,
-                        &vert2, &tex2,
-                        &vert3, &tex3
-                    );
-                    //printf("%d ",a);
-
-                }
-                //printf("\n");
-            }
-//            printf("Group %d, final number of vertices %d vs %d\n", g_idx, rv->groups[g_idx].nverts,rv->groups[g_idx].n_vertices);
-
-            start = end;
-            end = start + 1;
-        }
-    }
-//    rv->terrain = terrain;
-    sg_bin_object_free(terrain);
-    int i;
-    for(i = 0; i < rv->n_groups; i++){
-        if(rv->groups[i].tex_name == NULL)
-            break;
-    }
-    printf("Going from %d groups to %d\n", rv->n_groups, i);
-    rv->n_groups = i;
-    qsort(rv->groups, rv->n_groups, sizeof(VGroup), (__compar_fn_t)vgroup_compare);
-    printf("Done loading terrain %s\n",filename);
-//    mesh_dump_buffer(rv);
-//    exit(0);
-    return rv;
-}
-
+/**
+ * @brief Does the actual rendering of a prepared mesh.
+ *
+ * @param Mesh The Mesh to be worked on
+ * @param position Handle to "position" attribute of the shader
+ * @param texcoords Handle to "texcoords" attribute of the shader
+ * @param u_mvp Handle to the Model-View-Projection uniform matrix on the shader
+ * @param vp The current View-Projection matrix.
+ */
 void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_mvp, mat4d vp)
 {
+    /* TODO: Have a link between the mesh and the shader (rendermanager that renders all meshes that use a given shader?)
+     * get the mv out of here (rendermaanger that applies the matrix before calling mesh_render_buffer?)
+     * */
+
     VGroup *group;
     mat4d mvp;
     mat4 mvpf;
@@ -507,21 +392,21 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_
         group = &(self->groups[i]);
 
         glActiveTexture(GL_TEXTURE0 );
-        glBindTexture(GL_TEXTURE_2D, group->tex_id);
+        glBindTexture(GL_TEXTURE_2D, group->texture ? group->texture->id : 0); /*TODO: static_branch on tex loading*/
 
         glEnableVertexAttribArray(position);
-        glBindBuffer(GL_ARRAY_BUFFER, group->vertex_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, group->buffers[PositionBuffer]);
         glVertexAttribPointer(
             position,
             3,
             GL_FLOAT,
             GL_FALSE,
-            sizeof(SGVec3f), /*If we don't specify the stride, apitrace ain't so happy*/
+            sizeof(SGVec3f), /*If we don't specify the stride, apitrace doesn't detect the values correctly*/
             (void*)0
         );
 
         glEnableVertexAttribArray(texcoords);
-        glBindBuffer(GL_ARRAY_BUFFER, group->texs_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, group->buffers[TexCoordBuffer]);
         glVertexAttribPointer(
             texcoords,
             2,
@@ -531,12 +416,185 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_
             (void*)0
         );
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->element_buffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->buffers[ElementBuffer]);
         glDrawElements(GL_TRIANGLES, group->n_indices, INDICE_TYPE, 0);
 
         glDisableVertexAttribArray(position);
         glDisableVertexAttribArray(texcoords);
     }
-//    printf("Mesh %p rendered\n",self);
 }
 
+Mesh *mesh_new_from_btg(const char *filename)
+{
+    Mesh *rv = NULL;
+    SGBinObject *terrain;
+
+    terrain = sg_bin_object_new();
+    sg_bin_object_load(terrain, filename);
+
+    if(terrain->tris_v->len == 0)
+        goto out;
+
+    /*Do a first pass to read the total number of triangle groups*/
+    guint start = 0;
+    guint end = 1;
+    char *material;
+    size_t ngroups = 0;
+
+    while ( start < terrain->tri_materials->len ) {
+        // find next group
+        material = g_ptr_array_index(terrain->tri_materials,start);
+        while ( (end < terrain->tri_materials->len) &&
+                (!strcmp(material, g_ptr_array_index(terrain->tri_materials,end))) )
+        {
+            end++;
+        }
+        ngroups++;
+        start = end;
+        end = start + 1;
+    }
+
+    rv = mesh_new(ngroups);
+    glm_translated(rv->transformation,
+        (vec3d){terrain->gbs_center.x,
+                terrain->gbs_center.y,
+                terrain->gbs_center.z
+        }
+    );
+
+    /*Second pass, actually read the data*/
+    start = 0;
+    end = 1;
+    VGroup *group;
+    while ( start < terrain->tri_materials->len ) {
+        // find next group
+        material = g_ptr_array_index(terrain->tri_materials,start);
+        while ( (end < terrain->tri_materials->len) &&
+                (!strcmp(material, g_ptr_array_index(terrain->tri_materials,end))) )
+        {
+            end++;
+        }
+        /*Current group spans from tris_v[start] to tris_v[end-1]*/
+
+        group = mesh_add_vgroup(rv, material, (end-start)*3);
+        if(!group){
+            printf("Couldn't get group for %s size %d\n",material,  (end-start)*3);
+            exit(-1);
+
+        }
+        for (guint  i = start; i < end; ++i ) {
+            GArray *tri_v = g_ptr_array_index(terrain->tris_v, i);
+            GArray *tri_c = g_ptr_array_index(terrain->tris_c, i);
+            GPtrArray *tri_tcs = g_ptr_array_index(terrain->tris_tcs,i);
+            GArray *ttcs = g_ptr_array_index(tri_tcs,0);
+
+            for (guint j = 2; j < tri_v->len; j += 3) { //Edges of the triangle
+                /* Here we have take the same approach as Simgear that is
+                 * starting on the last edge(vertex) of the triangle tri_v[2]
+                 * and going backwards(tri_v[2-1], tri_v[2-2]), reading one
+                 * triangle per operation while eliminating tests on i-1,i-2.
+                 * SimGear seems to consider that more than one triangle could
+                 * be in tri_v and goes by increments of 3. That has been
+                 * reproduced here.
+                 * */
+                int a3, b3;
+                if(terrain->version >= 10){
+                    a3 = g_array_index(tri_v, int, j);
+                    b3 = g_array_index(ttcs, int, j);
+                }else{
+                    a3 = g_array_index(tri_v, uint16_t, j);
+                    b3 = g_array_index(ttcs, uint16_t, j);
+                }
+                SGVec3d vert3 = g_array_index(terrain->wgs84_nodes, SGVec3d, a3);
+                SGVec2f tex3 = g_array_index(terrain->texcoords, SGVec2f, b3);
+
+                int a2, b2;
+                if(terrain->version >= 10){
+                    a2 = g_array_index(tri_v, int, j - 1);
+                    b2 = g_array_index(ttcs, int, j - 1);
+                }else{
+                    a2 = g_array_index(tri_v, uint16_t, j - 1);
+                    b2 = g_array_index(ttcs, uint16_t, j - 1);
+                }
+                SGVec3d vert2 = g_array_index(terrain->wgs84_nodes, SGVec3d, a2);
+                SGVec2f tex2 = g_array_index(terrain->texcoords, SGVec2f, b2);
+
+                int a1, b1;
+                if(terrain->version >= 10){
+                    a1 = g_array_index(tri_v, int, j - 2);
+                    b1 = g_array_index(ttcs, int, j - 2);
+                }else{
+                    a1 = g_array_index(tri_v, uint16_t, j - 2);
+                    b1 = g_array_index(ttcs, uint16_t, j - 2);
+                }
+                SGVec3d vert1 = g_array_index(terrain->wgs84_nodes, SGVec3d, a1);
+                SGVec2f tex1 = g_array_index(terrain->texcoords, SGVec2f, b1);
+
+                vgroup_add_triangle(group,
+                    &vert1, &tex1,
+                    &vert2, &tex2,
+                    &vert3, &tex3
+                );
+            }
+        }
+        start = end;
+        end = start + 1;
+    }
+out:
+    sg_bin_object_free(terrain);
+    return rv;
+}
+
+/**
+ * @brief Computes the memory used by a Mesh
+ *
+ * @param self The Mesh to work on
+ * @param data_only if true, only the actual vertex data is
+ * accounted for, discarding counters, handles, and extra
+ * memory allocated but not used to store vertices.
+ * @return Mesh size in bytes
+ */
+size_t mesh_get_size(Mesh *self, bool data_only)
+{
+    size_t rv;
+
+    rv = 0;
+    for(size_t i = 0; i < self->n_groups; i++){
+        rv += vgroup_get_size(&(self->groups[i]), data_only);
+    }
+
+    if(!data_only)
+        rv += sizeof(Mesh);
+    return rv;
+}
+
+/**
+ * @brief Show the Mesh vertices data for debugging purposes
+ *
+ *
+ */
+void mesh_dump(Mesh *self)
+{
+    VGroup *group;
+    printf("Dumping Mesh %p\n",self);
+    for(size_t i = 0; i < self->n_groups; i++){
+        group = &(self->groups[i]);
+        printf("Group #%d (%s) %d indices:\n",i,
+            group->texture->name,
+            group->n_indices
+        );
+        if(group->n_indices%3 != 0)
+            printf("WARNING: Group #%d as a number of vertices that don't match a set of triangles\n",i);
+        for(int j = 0; j < group->n_indices; j++){
+            printf("indice[%d] -> Vertex[%d]: pos:%0.5f %0.5f %0.5f tex: %0.5f %0.5f\n",
+                   j, group->indices[j],
+                   group->positions[group->indices[j]].x,
+                   group->positions[group->indices[j]].y,
+                   group->positions[group->indices[j]].z,
+                   group->texcoords[group->indices[j]].x,
+                   group->texcoords[group->indices[j]].y
+            );
+        }
+    }
+    printf("Mesh %p dumped\n", self);
+}
