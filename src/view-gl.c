@@ -23,8 +23,23 @@
 #include "tile-manager.h"
 #include "gps-file-feed.h"
 
-#include "flightgear-connector.h"
 #include "skybox.h"
+
+#if 0
+#include "flightgear-connector.h"
+#else
+#include "fg-tape.h"
+
+typedef struct __attribute__((__packed__))  {
+    double latitude;
+    double longitude;
+    double altitude;
+    float roll;
+    float pitch;
+    float heading;
+}TpBuffer;
+
+#endif
 
 Plane *plane = NULL;
 Mesh *mesh = NULL;
@@ -291,19 +306,43 @@ int main(int argc, char **argv)
     time_t start = time(NULL);
     time_t dt;
 
+#if 0
     FlightgearConnector *fglink;
     fglink = flightgear_connector_new(6789);
     flightgear_connector_set_nonblocking(fglink);
     FlightgearPacket packet;
+#else
+    FGTape *tape;
+    FGTapeSignal signals[6];
+    TpBuffer tbuffer;
 
+    tape = fg_tape_new_from_file("../lib/fg-io/fg-tape/dr400.fgtape");
+    fg_tape_get_signals(tape, signals,
+        "/position[0]/latitude-deg[0]",
+        "/position[0]/longitude-deg[0]",
+        "/position[0]/altitude-ft[0]",
+        "/orientation[0]/roll-deg[0]",
+        "/orientation[0]/pitch-deg[0]",
+        "/orientation[0]/heading-deg[0]",
+        NULL
+    );
+#endif
+    time_t printed;
+    Uint32 startms = SDL_GetTicks();
+    Uint32 dtms;
+    Uint32 last_dtms;
+    int start_pos = 120;
+//    start_pos = 0;
 
     while(!done){
         ticks = SDL_GetTicks();
         elapsed = ticks - last_ticks;
-        dt = time(NULL) - start;
+        dt = time(NULL) - start + start_pos;
+        dtms = ticks - startms + (start_pos * 1000.0);
         dt *= global_accelerator;
 
         done = handle_event();
+#if 0
         if(flightgear_connector_get_packet(fglink, &packet)){
             float lon = fmod(packet.longitude+180, 360.0) - 180;
             packet.altitude = roundf(packet.altitude/3.281);
@@ -318,7 +357,21 @@ int main(int argc, char **argv)
             plane_set_position(plane, packet.latitude, lon, packet.altitude + 2);
             plane_set_attitude(plane, packet.roll, packet.pitch, packet.heading);
         }
+#else
+        if(dtms - last_dtms >= (1000/25)){ //One update per 1/25 second
+            fg_tape_get_data_at(tape, dtms / 1000.0, 6, signals, &tbuffer);
 
+    //            printf("Packet altitude: %d feets, %0.2f meters, corrected to %0.2f meters\n", packet.altitude, packet.altitude/3.281,calt);
+    //            plane_update_position(plane, packet.latitude, lon, packet.altitude + 2, elapsed);
+            float lon = fmod(tbuffer.longitude+180, 360.0) - 180;
+            tbuffer.altitude = tbuffer.altitude/3.281;
+            plane_set_position(plane, tbuffer.latitude, lon, tbuffer.altitude+2);
+            plane_set_attitude(plane, tbuffer.roll, tbuffer.pitch, tbuffer.heading);
+
+            last_dtms = dtms;
+        }
+//        printf("dt: %ld seconds\n", dt);
+#endif
 
         glClearColor (1.0, 1.0, 1.0, 0.0);
         glClear (GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -348,15 +401,17 @@ int main(int argc, char **argv)
         if(elapsed < 20){
             SDL_Delay(20 - elapsed);
         }
-        if(acc >= 4000){ /*1sec*/
-            plane_show_position(plane);
-            printf("NED vectors:\n");
-            printf("n: "); vec3_dump_long(plane->n);
-            printf("e: "); vec3_dump_long(plane->e);
-            printf("d: "); vec3_dump_long(plane->d);
+        if(acc >= 1000){ /*1sec*/
+            int h,m,s;
 
+            h = dtms/3600000;
+            dtms -= dtms/3600000 * h;
+            m = dtms / 60000;
+            dtms -= 60000 * m;
+            s = dtms / 1000;
 
-            printf("Current FPS: %d\n",nframes);
+            printf("%02d:%02d:%02d Current FPS: %03d\r",h,m,s, (1000*nframes)/elapsed);
+            fflush(stdout);
             nframes = 0;
             acc = 0;
         }

@@ -2,3 +2,7 @@
 	path = lib/cglm
 	url = https://github.com/recp/cglm.git
 	shallow = true
+[submodule "lib/fg-io"]
+	path = lib/fg-io
+	url = https://github.com/sam-itt/fg-io.git
+	shallow = true
