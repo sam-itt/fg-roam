@@ -13,7 +13,6 @@
 #include <cglm/cglm.h>
 
 #include "btg-io.h"
-#include "shader.h"
 #include "texture.h"
 #include "plane.h"
 #include "mesh.h"
@@ -24,6 +23,7 @@
 #include "gps-file-feed.h"
 
 #include "skybox.h"
+#include "basic-shader.h"
 
 #if 0
 #include "flightgear-connector.h"
@@ -43,33 +43,27 @@ typedef struct __attribute__((__packed__))  {
 
 Plane *plane = NULL;
 Mesh *mesh = NULL;
-Shader *shader = NULL;
-
-GLint a_position = 0;
-GLint a_texcoords = 0;
-GLint u_tex = 0;
-GLint u_mvpmtx = 0;
-
 
 unsigned int global_accelerator = 1;
 
 Mesh *lflg = NULL;
 
-void render(double vis, mat4d mv)
+void render(double vis, BasicShader *shader, mat4d mv)
 {
     SGBucket **buckets;
     Mesh *m;
 
     buckets = tile_manager_get_tiles(tile_manager_get_instance(), plane->lat, plane->lon, 1.0);
-
+    glUseProgram(SHADER(shader)->program_id);
     for(int i = 0; buckets[i] != NULL; i++){
         m = sg_bucket_get_mesh(buckets[i]);
             if(m){
-                mesh_render_buffer(m, a_position, a_texcoords, u_mvpmtx, mv);
+                mesh_render_buffer(m, shader, mv);
             }
     }
     if(lflg)
-        mesh_render_buffer(lflg, a_position, a_texcoords, u_mvpmtx, mv);
+        mesh_render_buffer(lflg, shader, mv);
+    glUseProgram(0);
 }
 
 int handle_keyboard(SDL_KeyboardEvent *event)
@@ -220,26 +214,16 @@ int main(int argc, char **argv)
     plane_set_position(plane, 45.21547, 5.84483, 718/3.281 + 4);
     DumpPlane(plane);
 
+    BasicShader *bshader;
 
-    shader = shader_new("vertex.gl","fragment.gl");
-    a_position = shader_get_attribute_location(shader, "position");
-    a_texcoords = shader_get_attribute_location(shader, "texcoord");
-    printf("a_position: %d, a_texcoords: %d\n",a_position,a_texcoords);
-    u_tex = shader_get_uniform_location(shader, "texture");
-    if(a_texcoords < 0){
-        printf("Cannot bind a_texcoords\n");
-        exit(-1);
-    }
-
-    u_mvpmtx = shader_get_uniform_location(shader, "mvp");
-    if(u_mvpmtx < 0){
-        printf("Cannot bind u_mvpmtx\n");
+    bshader = basic_shader_new();
+    if(!bshader){
+        printf("Couldn't create mandatory BasicShader, bailing out\n");
         exit(-1);
     }
 
     mat4d projection_matrix;
-    mat4d mvp;
-    mat4 fmvp;
+    mat4d proj_view;
 
     glm_mat4d_identity(projection_matrix);
     glm_perspectived(glm_rad(60.0), 800.0/600.0, 1.0, 1000.0, projection_matrix);
@@ -326,24 +310,20 @@ int main(int argc, char **argv)
         glClearColor (1.0, 1.0, 1.0, 0.0);
         glClear (GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(shader->program_id);
-        glUniform1i(u_tex, 0);
 
 //        plane_update(plane, GPS_FEED(feed));
 //        plane_update_timed(plane, feed, dt);
         PlaneView(plane, MSEC_TO_SEC(elapsed));
 
-        glm_mat4d_identity(mvp);
-        glm_mat4d_mul(projection_matrix, plane->view, mvp);
-        glm_mat4d_ucopyf(mvp, fmvp);
-        glUniformMatrix4fv(u_mvpmtx, 1, GL_FALSE, fmvp[0]);
+        glm_mat4d_identity(proj_view);
+        glm_mat4d_mul(projection_matrix, plane->view, proj_view);
 
         glm_mat4d_identity(skyview);
 //        glm_rotate_y(skyview, glm_rad(-plane->heading), skyview);
 //        glm_rotate_x(skyview, glm_rad(plane->pitch), skyview);
 
         glEnable(GL_DEPTH_TEST);   // skybox should be drawn behind anything else
-        render(10000.0, mvp);
+        render(10000.0, bshader, proj_view);
         skybox_render(skybox, skyview);
 
         SDL_GL_SwapWindow(window);
@@ -368,7 +348,7 @@ int main(int argc, char **argv)
         }
         last_ticks = ticks;
     }
-    shader_free(shader);
+    basic_shader_free(bshader);
     tile_manager_shutdown();
     plane_free(plane);
     SDL_GL_DeleteContext(gl_context);

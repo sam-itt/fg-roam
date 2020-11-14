@@ -6,6 +6,7 @@
 
 #include "btg-io.h"
 #include "texture.h"
+#include "basic-shader.h"
 
 #define USE_INT_INDICES 0
 
@@ -73,7 +74,7 @@ bool mesh_set_size(Mesh *self, size_t size);
 VGroup *mesh_add_vgroup(Mesh *self, const char *material, size_t n_triangles);
 
 Mesh *mesh_prepare(Mesh *self);
-void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_mvp, mat4d vp);
+void mesh_render_buffer(Mesh *self, BasicShader *shader, mat4d vp);
 
 void mesh_dump(Mesh *self);
 

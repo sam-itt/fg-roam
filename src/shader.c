@@ -10,38 +10,195 @@
 
 #include "shader.h"
 
-
+/*Private functions*/
+static void shader_cleanup(Shader *self);
+static bool shader_compile_file(GLuint *shader, GLenum type, const char *filename);
 static void shader_show_compile_error(GLuint shader, const char *shader_name);
 static void shader_show_link_error(Shader *self);
+static bool shader_load(Shader *self);
 
+/**
+ * @brief Creates a new shader from the given files.
+ *
+ * This will trigger compile on the GPU and fail if the program can't
+ * be put together.
+ *
+ * Calling code must call shader_free() when done.
+ *
+ * @param vertex Path to the vertex shader.
+ * @param fragment Path to the fragment shader.
+ * @return a usable shader or NULL on failure.
+ *
+ * @see shader_free
+ */
 Shader *shader_new(const char *vertex, const char *fragment)
-{   
+{
     Shader *rv;
 
     rv = calloc(1, sizeof(Shader));
     if(rv){
-        rv->vertex_src = strdup(vertex);
-        rv->fragment_src = strdup(fragment);
-        if(!shader_load(rv)){
-            shader_free(rv);
-            rv = NULL;
+        if(!shader_init(rv, vertex, fragment)){
+            free(rv);
+            return NULL;
         }
     }
     return rv;
 }
 
+/**
+ * @brief Inits a shader with given files.
+ *
+ * Behaves just like shader_new except it doesn't allocate
+ * memory for @p self and must be given that location.
+ *
+ * Use this function when creating derived types of Shader or
+ * using a statically allocated Shader.
+ *
+ * Calling code must call shader_dispose() when done.
+ *
+ * @param vertex Path to the vertex shader.
+ * @param fragment Path to the fragment shader.
+ * @return a usable shader or NULL on failure.
+ *
+ * @see shader_dispose
+ * @see shader_new
+ */
+Shader *shader_init(Shader *self, const char *vertex, const char *fragment)
+{
+    self->vertex_src = strdup(vertex);
+    self->fragment_src = strdup(fragment);
+    if(!self->vertex_src || !self->fragment_src){
+        return shader_dispose(self);
+    }
 
-void shader_free(Shader *self)
+    if(!shader_load(self)){
+        return shader_dispose(self);
+    }
+    return self;
+}
+
+/**
+ * @brief Release any resource held by @p self.
+ *
+ * Does NOT free self itself, only the resources it
+ * may hold.
+ *
+ * @param self a Shader
+ * @return Always NULL (convenience feature)
+ */
+void *shader_dispose(Shader *self)
 {
     shader_cleanup(self);
     if(self->vertex_src)
         free(self->vertex_src);
     if(self->fragment_src)
         free(self->fragment_src);
+    return NULL;
+}
+
+/**
+ * @brief Do over with @p self.
+ *
+ * Also free any resources internaly held by it
+ *
+ * @param self a Shader
+ */
+void shader_free(Shader *self)
+{
+    shader_dispose(self);
     free(self);
 }
 
-void shader_cleanup(Shader *self)
+/*TODO: Inline or macro*/
+/**
+ * @brief Returns the OpenGL handle for a shader uniform.
+ *
+ * @param self a Shader
+ * @param name the name of the uniform to look for
+ * @returns OpenGL handle (>0) on success, a value <0 otherwise.
+ */
+GLint shader_get_uniform_location(Shader *self, const char *name)
+{
+    return glGetUniformLocation(self->program_id, name);
+}
+
+/*TODO: Inline or macro*/
+/**
+ * @brief Returns the OpenGL handle for a shader attribute.
+ *
+ * @param self a Shader
+ * @param name the name of the attribute to look for
+ * @returns OpenGL handle (>0) on success, a value <0 otherwise.
+ */
+GLint shader_get_attribute_location(Shader *self, const char *name)
+{
+    return glGetAttribLocation(self->program_id, name);
+}
+
+/**
+ * @brief Fills @p uniform with the OpenGL handle for a shader uniform.
+ *
+ * Works like shader_get_uniform_location but fills in the value instead
+ * of returning it. This function will always modify uniform setting it
+ * either to a working handle or a negative value.
+ *
+ * @param self a Shader
+ * @param name the name of the uniform to look for
+ * @param uniform Where to write the result.
+ * @returns true on success, false otherwise.
+ */
+bool shader_get_uniform_locationp(Shader *self, const char *name, GLint *uniform)
+{
+    *uniform = glGetUniformLocation(self->program_id, name);
+    if(*uniform < 0){
+        printf("Failed to lookup uniform %s in shader %s + %s\n",
+            name,
+            self->vertex_src,
+            self->fragment_src
+        );
+        return false;
+    }
+    return *uniform >= 0;
+}
+
+/**
+ * @brief Fills @p attribute with the OpenGL handle for a shader attribute.
+ *
+ * Works like shader_get_attribute_location but fills in the value instead
+ * of returning it. This function will always modify attribute setting it
+ * either to a working handle or a negative value.
+ *
+ * @param self a Shader
+ * @param name the name of the attribute to look for
+ * @param attribute Where to write the result.
+ * @returns true on success, false otherwise.
+ */
+bool shader_get_attribute_locationp(Shader *self, const char *name, GLint *attribute)
+{
+    *attribute = glGetAttribLocation(self->program_id, name);
+    if(*attribute < 0){
+        printf("Failed to lookup attribute %s in shader %s + %s\n",
+            name,
+            self->vertex_src,
+            self->fragment_src
+        );
+        return false;
+    }
+    return *attribute >= 0;
+}
+
+/**
+ * @brief Wrapper around glBindAttribLocation.
+ *
+ * HAS CURRENTLY NO USE CASE. REMOVE?
+ */
+void shader_bind_attribute(Shader *self, GLuint attribute, const char *name)
+{
+    glBindAttribLocation(self->program_id, attribute, name);
+}
+
+/*Internal use only, TODO: merge with shader_dispose ?*/
+static void shader_cleanup(Shader *self)
 {
     if(glIsShader(self->vertex_id) == GL_TRUE)
         glDeleteShader(self->vertex_id);
@@ -53,7 +210,15 @@ void shader_cleanup(Shader *self)
         glDeleteProgram(self->program_id);
 }
 
-bool shader_load(Shader *self)
+/*
+ * @brief Compile, links and loads the shader code on the GPU
+ *
+ * Internal use only
+ *
+ * @param self a Shader
+ * @return true on success, false otherwise
+ */
+static bool shader_load(Shader *self)
 {
     GLint rv;
 
@@ -78,23 +243,18 @@ bool shader_load(Shader *self)
     return true;
 }
 
-GLint shader_get_uniform_location(Shader *self, const char *name)
-{
-    return glGetUniformLocation(self->program_id, name);
-}
-
-GLint shader_get_attribute_location(Shader *self, const char *name)
-{
-    return glGetAttribLocation(self->program_id, name);
-}
-
-
-void shader_bind_attribute(Shader *self, GLuint attribute, const char *name)
-{
-    glBindAttribLocation(self->program_id, attribute, name);
-}
-
-bool shader_compile_file(GLuint *shader, GLenum type, const char *filename)
+/*
+ * @brief Creates a shader from the content of @p filename.
+ *
+ * INTERNAL USE ONLY
+ *
+ * @param shader Pointer to a location where to store the resulting
+ * OpenGL handle.
+ * @param type One of the types accepted by glCreateShader, mainly
+ * GL_VERTEX_SHADER and GL_FRAGMENT_SHADER.
+ * @return true on success, false otherwise
+ */
+static bool shader_compile_file(GLuint *shader, GLenum type, const char *filename)
 {
     FILE *fp;
     GLint fsize;
@@ -130,6 +290,11 @@ bool shader_compile_file(GLuint *shader, GLenum type, const char *filename)
     return true;
 }
 
+/*TODO: Merge the following two error-reporting functions in one*/
+/*
+ * @brief Callback function for OpenGL to call where there is an error message
+ * to report at the compile stage.
+ */
 static void shader_show_compile_error(GLuint shader, const char *shader_name)
 {
     GLint msg_size;
@@ -144,6 +309,10 @@ static void shader_show_compile_error(GLuint shader, const char *shader_name)
     free(msg);
 }
 
+/*
+ * @brief Callback function for OpenGL to call where there is an error message
+ * to report at the linking stage.
+ */
 static void shader_show_link_error(Shader *self)
 {
     GLint msg_size;

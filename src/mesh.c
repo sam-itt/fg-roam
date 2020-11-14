@@ -373,10 +373,10 @@ Mesh *mesh_prepare(Mesh *self)
  * @param u_mvp Handle to the Model-View-Projection uniform matrix on the shader
  * @param vp The current View-Projection matrix.
  */
-void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_mvp, mat4d vp)
+void mesh_render_buffer(Mesh *self, BasicShader *shader, mat4d vp)
 {
-    /* TODO: Have a link between the mesh and the shader (rendermanager that renders all meshes that use a given shader?)
-     * get the mv out of here (rendermaanger that applies the matrix before calling mesh_render_buffer?)
+    /* TODO: Maybe get the mv out of here (rendermaanger that applies the matrix
+     * before calling mesh_render_buffer?).
      * */
 
     VGroup *group;
@@ -385,7 +385,7 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_
 
     glm_mat4d_mul(vp, self->transformation, mvp);
     glm_mat4d_ucopyf(mvp, mvpf);
-    glUniformMatrix4fv(u_mvp, 1, GL_FALSE, mvpf[0]);
+    glUniformMatrix4fv(shader->mvp, 1, GL_FALSE, mvpf[0]);
 
     for(GLuint i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
@@ -393,10 +393,10 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_
         glActiveTexture(GL_TEXTURE0 );
         glBindTexture(GL_TEXTURE_2D, group->texture ? group->texture->id : 0); /*TODO: static_branch on tex loading*/
 
-        glEnableVertexAttribArray(position);
+        glEnableVertexAttribArray(shader->position);
         glBindBuffer(GL_ARRAY_BUFFER, group->buffers[PositionBuffer]);
         glVertexAttribPointer(
-            position,
+            shader->position,
             3,
             GL_FLOAT,
             GL_FALSE,
@@ -404,10 +404,10 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_
             (void*)0
         );
 
-        glEnableVertexAttribArray(texcoords);
+        glEnableVertexAttribArray(shader->texcoords);
         glBindBuffer(GL_ARRAY_BUFFER, group->buffers[TexCoordBuffer]);
         glVertexAttribPointer(
-            texcoords,
+            shader->texcoords,
             2,
             GL_FLOAT,
             GL_FALSE,
@@ -418,8 +418,8 @@ void mesh_render_buffer(Mesh *self, GLuint position, GLuint texcoords, GLuint u_
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->buffers[ElementBuffer]);
         glDrawElements(GL_TRIANGLES, group->n_indices, INDICE_TYPE, 0);
 
-        glDisableVertexAttribArray(position);
-        glDisableVertexAttribArray(texcoords);
+        glDisableVertexAttribArray(shader->position);
+        glDisableVertexAttribArray(shader->texcoords);
     }
 }
 
