@@ -34,7 +34,7 @@ typedef struct{
     GLfloat vZ;
 
     vec3 x, y, z;
-    bool inited;
+    bool dirty;
 
     mat4d attitude;
     mat4d view;
@@ -44,7 +44,7 @@ typedef struct{
 Plane *plane_new(void);
 void plane_free(Plane *self);
 
-void PlaneView(Plane *p, double dt);
+void plane_view(Plane *self);
 void DumpPlane(Plane *p);
 
 void plane_get_position(Plane *p, double *lat, double *lon, double *alt);

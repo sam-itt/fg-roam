@@ -32,29 +32,31 @@ void plane_free(Plane *self)
     free(self);
 }
 
-void PlaneView(Plane *p, double dt)
+void plane_view(Plane *self)
 {
-    dt = 1.0;
+    if(!self->dirty)
+        return;
 
-    if(p->speed){
-        p->X += p->x[0] * p->speed * dt;
-        p->Y += p->x[1] * p->speed * dt;
-        p->Z += p->x[2] * p->speed * dt;
+    if(self->speed){
+        self->X += self->x[0] * self->speed;
+        self->Y += self->x[1] * self->speed;
+        self->Z += self->x[2] * self->speed;
     }
 
-    p->X += p->vX * dt;
-    p->Y += p->vY * dt;
-    p->Z += p->vZ * dt;
+    self->X += self->vX;
+    self->Y += self->vY;
+    self->Z += self->vZ;
 
-    p->roll += p->vroll;
-    p->pitch += p->vpitch;
-    p->heading += p->vheading;
+    self->roll += self->vroll;
+    self->pitch += self->vpitch;
+    self->heading += self->vheading;
+
 #if 0
-    fmod(p->roll, 360);
-    fmod(p->pitch, 360);
-    fmod(p->heading, 360);
+    fmod(self->roll, 360);
+    fmod(self->pitch, 360);
+    fmod(self->heading, 360);
 #endif
-    glm_mat4d_identity(p->view);
+    glm_mat4d_identity(self->view);
 
     versord hlOr;
     versord hlToBody;
@@ -64,23 +66,23 @@ void PlaneView(Plane *p, double dt)
 
    // The quaternion rotating from the earth centered frame to the
     // horizontal local frame
-    glm_quatd_from_lon_lat(hlOr, p->lon, p->lat);
+    glm_quatd_from_lon_lat(hlOr, self->lon, self->lat);
 
     // The rotation from the horizontal local frame to the basic view orientation
-    glm_quatd_from_ypr(hlToBody, p->heading, p->pitch, p->roll);
+    glm_quatd_from_ypr(hlToBody, self->heading, self->pitch, self->roll);
 
     // Compute the eyepoints orientation and position
     // wrt the earth centered frame - that is global coorinates
     glm_quatd_mul(hlOr, hlToBody, ec2body);
 
     // The cartesian position of the basic view coordinate
-    vec3d position = {p->X, p->Y, p->Z};
+    vec3d position = {self->X, self->Y, self->Z};
 
     // This is rotates the x-forward, y-right, z-down coordinate system the where
     // simulation runs into the OpenGL camera system with x-right, y-up, z-back.
     glm_quatd_init(q, -0.5, -0.5, 0.5, 0.5);
 
-//    p->_absolute_view_pos = position;
+//    self->_absolute_view_pos = position;
     glm_quatd_mul(ec2body, q, mViewOrientation);
 
     mat4d rotation;
@@ -88,12 +90,13 @@ void PlaneView(Plane *p, double dt)
     glm_quatd_inv(mViewOrientation, view_inv);
     glm_quatd_mat4d(view_inv, rotation);
 
-//    printf("%f,%f,%f -> %f %f %f %f\n",p->heading, p->pitch, p->roll, view_inv[0],view_inv[1],view_inv[2],view_inv[3]);
+//    printf("%f,%f,%f -> %f %f %f %f\n",self->heading, self->pitch, self->roll, view_inv[0],view_inv[1],view_inv[2],view_inv[3]);
 
-
-    glm_mat4d_mul(p->view, rotation, p->view);
-    glm_translated(p->view, (vec3d){-p->X, -p->Y, -p->Z});
+    glm_mat4d_mul(self->view, rotation, self->view);
+    glm_translated(self->view, (vec3d){-self->X, -self->Y, -self->Z});
+    self->dirty = false;
 }
+
 
 
 
@@ -102,6 +105,23 @@ void plane_set_attitude(Plane *p, double roll, double pitch, double heading)
     p->roll = roll;
     p->pitch = pitch;
     p->heading = heading;
+
+    p->dirty = true;
+}
+
+/*
+ * Alt in meters
+ *
+ */
+void plane_set_position(Plane *self, double lat, double lon, double alt)
+{
+    self->lat = lat;
+    self->lon = lon;
+    self->alt = alt;
+
+    SGGeodToCart(self->lat, self->lon, self->alt, &self->X, &self->Y, &self->Z);
+
+    self->dirty = true;
 }
 
 
@@ -137,18 +157,6 @@ void plane_get_position(Plane *p, double *lat, double *lon, double *alt)
     *alt = oldrv[2];
 }
 
-/*
- * Alt in meters
- *
- */
-void plane_set_position(Plane *self, double lat, double lon, double alt)
-{
-    self->lat = lat;
-    self->lon = lon;
-    self->alt = alt;
-
-    SGGeodToCart(self->lat, self->lon, self->alt, &self->X, &self->Y, &self->Z);
-}
 
 
 /*dt  in seconds*/

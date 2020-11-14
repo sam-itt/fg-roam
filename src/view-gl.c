@@ -24,6 +24,8 @@
 
 #include "skybox.h"
 #include "basic-shader.h"
+#include "terrain-viewer.h"
+
 
 #if 0
 #include "flightgear-connector.h"
@@ -41,84 +43,67 @@ typedef struct __attribute__((__packed__))  {
 
 #endif
 
-Plane *plane = NULL;
-Mesh *mesh = NULL;
-
-unsigned int global_accelerator = 1;
-
-Mesh *lflg = NULL;
-
-void render(double vis, BasicShader *shader, mat4d mv)
+int handle_keyboard(SDL_KeyboardEvent *event, TerrainViewer *viewer)
 {
-    SGBucket **buckets;
-    Mesh *m;
+    Plane *plane;
 
-    buckets = tile_manager_get_tiles(tile_manager_get_instance(), plane->lat, plane->lon, 1.0);
-    glUseProgram(SHADER(shader)->program_id);
-    for(int i = 0; buckets[i] != NULL; i++){
-        m = sg_bucket_get_mesh(buckets[i]);
-            if(m){
-                mesh_render_buffer(m, shader, mv);
-            }
-    }
-    if(lflg)
-        mesh_render_buffer(lflg, shader, mv);
-    glUseProgram(0);
-}
-
-int handle_keyboard(SDL_KeyboardEvent *event)
-{
+    plane = viewer->plane;
     switch(event->keysym.sym){
         case SDLK_LEFT:
             plane->vroll = (event->state == SDL_PRESSED) ? 1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_RIGHT:
             plane->vroll = (event->state == SDL_PRESSED) ? -1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_DOWN:
             plane->vpitch = (event->state == SDL_PRESSED) ? 1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_UP:
             plane->vpitch = (event->state == SDL_PRESSED) ? -1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_PAGEUP:
             plane->vheading = (event->state == SDL_PRESSED) ? -1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_PAGEDOWN:
             plane->vheading = (event->state == SDL_PRESSED) ? 1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_KP_4:
             plane->vX = (event->state == SDL_PRESSED) ? 1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_KP_6:
             plane->vX = (event->state == SDL_PRESSED) ? -1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_KP_8:
             plane->vY = (event->state == SDL_PRESSED) ? 1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_KP_2:
             plane->vY = (event->state == SDL_PRESSED) ? -1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_KP_9:
             plane->vZ = (event->state == SDL_PRESSED) ? 1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_KP_3:
             plane->vZ = (event->state == SDL_PRESSED) ? -1.0 : 0;
-            break;
-        case SDLK_a:
-            global_accelerator++;
-            printf("global_accelerator: %d\n",global_accelerator);
-            break;
-        case SDLK_q:
-            if(global_accelerator > 1)
-                global_accelerator--;
-            printf("global_accelerator: %d\n",global_accelerator);
+            plane->dirty = true;
             break;
         case SDLK_n:
             plane->speed = (event->state == SDL_PRESSED) ? 1.0 : 0;
+            plane->dirty = true;
             break;
         case SDLK_b:
             plane->speed = (event->state == SDL_PRESSED) ? -1.0 : 0;
+            plane->dirty = true;
             break;
 
 
@@ -133,7 +118,7 @@ int handle_keyboard(SDL_KeyboardEvent *event)
 }
 
 
-int handle_event(void)
+int handle_event(TerrainViewer *viewer)
 {
     SDL_Event event;
 #if ENABLE_WAIT_EVENT
@@ -148,7 +133,7 @@ int handle_event(void)
             break;
         case SDL_KEYUP:
         case SDL_KEYDOWN:
-            return handle_keyboard(&(event.key));
+            return handle_keyboard(&(event.key), viewer);
             break;
     }
 #if !ENABLE_WAIT_EVENT
@@ -162,7 +147,6 @@ int main(int argc, char **argv)
 
     SDL_Window* window;
     SDL_GLContext gl_context;
-
     bool done = false;
 
 
@@ -201,44 +185,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-
-
-
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_LIGHTING);
-
-    lflg = mesh_new_from_file("../../Terrain/e000n40/e005n45/LFLG.btg.gz");
-
-    plane = plane_new(); /*implicit  0 0 0 yaw pitch roll*/
-    //plane_set_position(plane, 44.451950000, 5.726316667, 852);
-    plane_set_position(plane, 45.21547, 5.84483, 718/3.281 + 4);
-    DumpPlane(plane);
-
-    BasicShader *bshader;
-
-    bshader = basic_shader_new();
-    if(!bshader){
-        printf("Couldn't create mandatory BasicShader, bailing out\n");
-        exit(-1);
-    }
-
-    mat4d projection_matrix;
-    mat4d proj_view;
-
-    glm_mat4d_identity(projection_matrix);
-    glm_perspectived(glm_rad(60.0), 800.0/600.0, 1.0, 1000.0, projection_matrix);
-
-    Skybox *skybox = skybox_new(projection_matrix);
-    mat4d skyview = GLM_MAT4D_IDENTITY_INIT;
-
-    Uint32 ticks;
-    Uint32 last_ticks = 0;
-    Uint32 elapsed = 0;
-    Uint32 acc = 0;
-    Uint32 nframes = 0;
-
-    time_t start = time(NULL);
-    time_t dt;
+    TerrainViewer *viewer;
+    viewer = terrain_viewer_new();
 
 #if 0
     FlightgearConnector *fglink;
@@ -261,70 +209,53 @@ int main(int argc, char **argv)
         NULL
     );
 #endif
-    time_t printed;
-    Uint32 startms = SDL_GetTicks();
+    Uint32 ticks;
+    Uint32 last_ticks = 0;
+    Uint32 elapsed = 0;
+
+    Uint32 startms;
     Uint32 dtms;
     Uint32 last_dtms;
-    int start_pos = 120;
+    int start_pos = 120; /*Starting position in the tape*/
 //    start_pos = 0;
 
+    Uint32 acc = 0;
+    Uint32 nframes = 0;
+
+    startms = SDL_GetTicks();
     while(!done){
         ticks = SDL_GetTicks();
         elapsed = ticks - last_ticks;
-        dt = time(NULL) - start + start_pos;
         dtms = ticks - startms + (start_pos * 1000.0);
-        dt *= global_accelerator;
 
-        done = handle_event();
+        done = handle_event(viewer);
 #if 0
         if(flightgear_connector_get_packet(fglink, &packet)){
             float lon = fmod(packet.longitude+180, 360.0) - 180;
-            packet.altitude = roundf(packet.altitude/3.281);
-            float calt = packet.altitude + 1.5/*+ 398*/;
-            calt = roundf(calt * 100) / 100.0;
-    //        packet.roll = roundf(packet.roll * 100) / 100.0;
-    //        packet.pitch = roundf(packet.pitch * 100) / 100.0;
-    //        packet.heading = roundf(packet.heading * 100) / 100.0;
-
-//            printf("Packet altitude: %d feets, %0.2f meters, corrected to %0.2f meters\n", packet.altitude, packet.altitude/3.281,calt);
-//            plane_update_position(plane, packet.latitude, lon, packet.altitude + 2, elapsed);
-            plane_set_position(plane, packet.latitude, lon, packet.altitude + 2);
-            plane_set_attitude(plane, packet.roll, packet.pitch, packet.heading);
+            packet.altitude = packet.altitude/3.281;
+            terrain_viewer_update_plane(viewer,
+                packet.latitude, packet.longitude, packet.altitude + 2,
+                packet.roll, packet.pitch, packet.heading
+            );
         }
 #else
         if(dtms - last_dtms >= (1000/25)){ //One update per 1/25 second
             fg_tape_get_data_at(tape, dtms / 1000.0, 6, signals, &tbuffer);
 
-    //            printf("Packet altitude: %d feets, %0.2f meters, corrected to %0.2f meters\n", packet.altitude, packet.altitude/3.281,calt);
-    //            plane_update_position(plane, packet.latitude, lon, packet.altitude + 2, elapsed);
             float lon = fmod(tbuffer.longitude+180, 360.0) - 180;
             tbuffer.altitude = tbuffer.altitude/3.281;
-            plane_set_position(plane, tbuffer.latitude, lon, tbuffer.altitude+2);
-            plane_set_attitude(plane, tbuffer.roll, tbuffer.pitch, tbuffer.heading);
-
+            terrain_viewer_update_plane(viewer,
+                tbuffer.latitude, tbuffer.longitude, tbuffer.altitude + 2,
+                tbuffer.roll, tbuffer.pitch, tbuffer.heading
+            );
             last_dtms = dtms;
         }
-//        printf("dt: %ld seconds\n", dt);
 #endif
 
         glClearColor (1.0, 1.0, 1.0, 0.0);
         glClear (GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-
-//        plane_update(plane, GPS_FEED(feed));
-//        plane_update_timed(plane, feed, dt);
-        PlaneView(plane, MSEC_TO_SEC(elapsed));
-
-        glm_mat4d_identity(proj_view);
-        glm_mat4d_mul(projection_matrix, plane->view, proj_view);
-
-        glm_mat4d_identity(skyview);
-//        glm_rotate_y(skyview, glm_rad(-plane->heading), skyview);
-//        glm_rotate_x(skyview, glm_rad(plane->pitch), skyview);
-
-        glEnable(GL_DEPTH_TEST);   // skybox should be drawn behind anything else
-        render(10000.0, bshader, proj_view);
-        skybox_render(skybox, skyview);
+        terrain_viewer_frame(viewer);
 
         SDL_GL_SwapWindow(window);
         nframes++;
@@ -348,9 +279,7 @@ int main(int argc, char **argv)
         }
         last_ticks = ticks;
     }
-    basic_shader_free(bshader);
-    tile_manager_shutdown();
-    plane_free(plane);
+    terrain_viewer_free(viewer);
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
