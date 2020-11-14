@@ -3,7 +3,7 @@
 
 #include <GL/gl.h>
 
-#include "shader.h"
+#include "skybox-shader.h"
 #include "cglm/types.h"
 
 typedef struct{
@@ -11,12 +11,9 @@ typedef struct{
     GLuint vertex_buffer;
     GLuint indices_buffer;
 
-    Shader *shader;
-    GLint pos_attr;
-    GLint mtx_u;
-    GLint vmtx_u;
-    GLint texunit;
+    SkyboxShader *shader;
 
+    mat4 view;
 }Skybox;
 
 //uGLuint skybox_load_textures(void);
@@ -24,5 +21,6 @@ typedef struct{
 Skybox *skybox_new(mat4d projection);
 Skybox *skybox_init(Skybox *self, mat4d projection);
 
-void skybox_render(Skybox *self, mat4d view);
+void skybox_set_projection(Skybox *self, mat4d projection);
+void skybox_render(Skybox *self);
 #endif /* SKYBOX_H */

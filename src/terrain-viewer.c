@@ -48,11 +48,9 @@ TerrainViewer *terrain_viewer_init(TerrainViewer *self)
 
     glm_mat4d_identity(self->projection);
     /*FG seems to be using 55° and 15km*/
-    glm_perspectived(glm_rad(60.0), 800.0/600.0, 1.0, 1000.0, self->projection);
+    glm_perspectived(glm_rad(60.0), 800.0/600.0, 1.0, 10000.0, self->projection);
 
     self->skybox = skybox_new(self->projection);
-    glm_mat4d_identity(self->skyview);
-
 
     return self;
 }
@@ -96,16 +94,18 @@ void terrain_viewer_frame(TerrainViewer *self)
     SGBucket **buckets;
     Mesh *m;
 
-    if(self->plane->dirty)
+    if(self->plane->dirty){
         plane_view(self->plane);
+
+//        glm_mat4_identity(self->skybox->view);
+ //       glm_rotate_y(self->skybox->view, glm_rad(-self->plane->heading), self->skybox->view);
+//        glm_rotate_x(self->skybox->view, glm_rad(self->plane->pitch), self->skybox->view);
+    }
 
     if(self->dirty){
         glm_mat4d_identity(self->projection_view);
         glm_mat4d_mul(self->projection, self->plane->view, self->projection_view);
 
-        glm_mat4d_identity(self->skyview);
-        //glm_rotate_y(skyview, glm_rad(-plane->heading), skyview);
-        //glm_rotate_x(skyview, glm_rad(plane->pitch), skyview);
     }
 
     glEnable(GL_DEPTH_TEST);   // skybox should be drawn behind anything else
@@ -122,6 +122,6 @@ void terrain_viewer_frame(TerrainViewer *self)
         mesh_render_buffer(self->lflg, self->shader, self->projection_view);
     glUseProgram(0);
 
-    skybox_render(self->skybox, self->skyview);
+    skybox_render(self->skybox);
 }
 

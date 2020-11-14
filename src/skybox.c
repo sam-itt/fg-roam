@@ -1,4 +1,3 @@
-#include "cglm/mat4d.h"
 #define _GNU_SOURCE
 #define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
@@ -103,70 +102,46 @@ Skybox *skybox_new(mat4d projection)
 
 Skybox *skybox_init(Skybox *self, mat4d projection)
 {
-    GLuint mtx;
-
     skybox_load_textures(self);
     skybox_prepare_vbo(self);
 
-    self->shader = shader_new("sky-vertex.gl", "sky-fragment.gl");
-    mtx = shader_get_uniform_location(self->shader, "projectionMatrix");
-    if(mtx < 0){
-        printf("Cannot bind skybox projection matrix\n");
-        exit(-1);
-    }
-    self->mtx_u = mtx;
+    self->shader = skybox_shader_new();
 
-    self->vmtx_u = shader_get_uniform_location(self->shader, "viewMatrix");
-    if(self->vmtx_u < 0){
-        printf("Cannot bind skybox view matrix\n");
-//        exit(-1);
-    }
-
-    self->pos_attr = shader_get_attribute_location(self->shader, "position");
-    if(self->pos_attr < 0){
-        printf("Cannot bind skybox position\n");
-        exit(-1);
-    }
-
-    self->texunit = shader_get_uniform_location(self->shader, "cubeMap");
-    if(self->texunit < 0){
-        printf("Cannot bind skybox texunit\n");
-        exit(-1);
-    }
-    mat4 projf;
-    glm_mat4d_ucopyf(projection, projf);
-
-    glUseProgram(self->shader->program_id);
-    glUniformMatrix4fv(mtx, 1, GL_FALSE, projf[0]);
-    glUniform1i(self->texunit, 0);
+    skybox_set_projection(self, projection);
+    /*Sets the uniform once and for all*/
+#if 0
+    glUseProgram(SHADER(self->shader)->program_id);
+    glUniform1i(self->shader->texunit, 0);
     glUseProgram(0);
-
+#endif
 
     return self;
 }
 
-void skybox_render(Skybox *self, mat4d view)
+void skybox_set_projection(Skybox *self, mat4d projection)
 {
-    mat4 fview;
+    mat4 projf;
+    glm_mat4d_ucopyf(projection, projf);
 
+    glUseProgram(SHADER(self->shader)->program_id);
+    glUniformMatrix4fv(self->shader->projection_matrix, 1, GL_FALSE, projf[0]);
+    glUseProgram(0);
+}
+
+void skybox_render(Skybox *self)
+{
     glDepthFunc(GL_LEQUAL);
 
     glEnable(GL_TEXTURE_CUBE_MAP);
-    glUseProgram(self->shader->program_id);
+    glUseProgram(SHADER(self->shader)->program_id);
 
-    glm_mat4d_ucopyf(view, fview);
-/*    fview[3][0] = 0.0;
-    fview[3][1] = 0.0;
-    fview[3][2] = 0.0;*/
-//    glm_scale_to(view, (vec3){2.0,2.0,1.0}, fview);
-
-    glUniformMatrix4fv(self->vmtx_u, 1, GL_FALSE, fview[0]);
-    glUniform1i(self->texunit, 0);
+    glUniformMatrix4fv(self->shader->view_matrix, 1, GL_FALSE, self->view[0]);
+    glUniform1i(self->shader->texunit, 0);
 
 
     glBindTexture(GL_TEXTURE_CUBE_MAP, self->tex_id);
 
-    glEnableVertexAttribArray(self->pos_attr);
+    glEnableVertexAttribArray(self->shader->position);
     glBindBuffer(GL_ARRAY_BUFFER, self->vertex_buffer);
     glVertexAttribPointer(
         0,
@@ -263,5 +238,5 @@ void skybox_prepare_vbo(Skybox *self)
         GL_STATIC_DRAW
     );
 #endif
-    printf("sizeof(vertices): %d, sizeof(vertices)(sizeof(float) = %d\n",sizeof(vertices), sizeof(vertices)/sizeof(float));
+//    printf("sizeof(vertices): %d, sizeof(vertices)(sizeof(float) = %d\n",sizeof(vertices), sizeof(vertices)/sizeof(float));
 }

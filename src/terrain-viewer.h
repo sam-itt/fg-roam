@@ -19,8 +19,6 @@ typedef struct{
     /*Matrices*/
     mat4d projection;
     mat4d projection_view;
-
-    mat4d skyview;
 }TerrainViewer;
 
 
