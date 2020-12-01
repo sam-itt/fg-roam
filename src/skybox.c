@@ -108,6 +108,8 @@ Skybox *skybox_init(Skybox *self, mat4d projection)
     self->shader = skybox_shader_new();
 
     skybox_set_projection(self, projection);
+
+    glm_mat4_identity(self->view);
     /*Sets the uniform once and for all*/
 #if 0
     glUseProgram(SHADER(self->shader)->program_id);
