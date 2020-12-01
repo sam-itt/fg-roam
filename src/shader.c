@@ -268,6 +268,10 @@ static bool shader_compile_file(GLuint *shader, GLenum type, const char *filenam
     }
 
     fp = fopen(filename, "rb");
+    if(!fp){
+        printf("Couldn't open file %s\n",filename);
+        return false;
+    }
     fseek(fp, 0L, SEEK_END);
     fsize = ftell(fp);
     fseek(fp, 0L, SEEK_SET);  /* same as rewind(fp); */
