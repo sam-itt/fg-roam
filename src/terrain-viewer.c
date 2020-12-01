@@ -36,7 +36,7 @@ TerrainViewer *terrain_viewer_init(TerrainViewer *self)
     if(!self->plane)
         return NULL;
 
-    self->lflg = mesh_new_from_file("../../Terrain/e000n40/e005n45/LFLG.btg.gz");
+    self->lflg = mesh_new_from_file(TERRAIN_ROOT"/e000n40/e005n45/LFLG.btg.gz");
     if(!self->lflg)
         return NULL;
 

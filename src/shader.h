@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <GL/gl.h>
 
+#ifndef SHADER_ROOT
+#define SHADER_ROOT "."
+#endif
+
 typedef struct{
     /*Source filenames*/
     char *vertex_src;

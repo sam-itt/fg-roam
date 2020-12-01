@@ -12,11 +12,52 @@
 
 #include "texture.h"
 
+#ifndef TEX_ROOT
+#define TEX_ROOT "/home/samuel/dev/textures"
+#endif
+
 static Texture *_store[256]; /*TODO: Array->Hash or embed in meshes*/
 static unsigned char _ntextures = 0;
 
-static char *files[] = {"../../textures/asphalt.png","../../textures/gravel.png","../../textures/water-lake.png","../../textures/water-lake.png","../../textures/water-lake.png","../../textures/city1.png","../../textures/drycrop1.png","../../textures/irrcrop1.png","../../textures/mixedcrop1.png","../../textures/naturalcrop1.png","../../textures/cropgrass1.png","../../textures/cropgrass1.png","../../textures/shrub1.png","../../textures/deciduous1.png","../../textures/forest1a.png","../../textures/mixedforest.png","../../textures/shrub1.png","../../textures/airport.png","../../textures/airport.png","../../textures/rock.png","../../textures/glacier3.png","../../textures/golfcourse1.png","../../textures/airport.png","../../textures/deciduous1.png","../../textures/city1.png","../../textures/water-lake.png","../../textures/rock.png","../../textures/irrcrop1.png","../../textures/asphalt.png","../../textures/rock.png","../../textures/Town1.png","../../textures/gravel.png","../../textures/irrcrop1.png","../../textures/Runway/lf_dbl_solid_yellow.png","../../textures/Runway/lf_runway_hold_border.png","../../textures/Runway/pa_0l.png","../../textures/Runway/pa_2l.png","../../textures/Runway/pa_2r.png","../../textures/Runway/pa_4r.png","../../textures/Runway/pa_aim.png","../../textures/Runway/pa_centerline.png","../../textures/Runway/pa_dspl_arrows.png","../../textures/Runway/pa_dspl_thresh.png","../../textures/Runway/pa_rest.png","../../textures/Runway/pa_shoulder_f1.png","../../textures/Runway/pa_threshold.png","../../textures/Runway/pc_helipad.png","../../textures/Runway/pc_tiedown.png","../../textures/Runway/grass_rwy.png" };
-static char *names[] = {"Freeway","Railroad","Stream","Watercourse","Canal","Urban","DryCrop","IrrCrop","ComplexCrop","NaturalCrop","CropGrass","Grassland","Scrub","DeciduousForest","EvergreenForest","MixedForest","Sclerophyllous","Airport","Grass","BarrenCover","Glacier","GolfCourse","Greenspace","Heath","Industrial","Lake","OpenMining","Orchard","Road","Rock","Town","Transport","Vineyard","lf_dbl_solid_yellow","lf_runway_hold_border","pa_0l","pa_2l","pa_2r","pa_4r","pa_aim","pa_centerline","pa_dspl_arrows","pa_dspl_thresh","pa_rest","pa_shoulder_f","pa_threshold","pc_heli","pc_tiedown","grass_rwy"};
+static char *files[] = {
+    TEX_ROOT"/asphalt.png",TEX_ROOT"/gravel.png",TEX_ROOT"/water-lake.png",
+    TEX_ROOT"/water-lake.png",TEX_ROOT"/water-lake.png",TEX_ROOT"/city1.png",
+    TEX_ROOT"/drycrop1.png",TEX_ROOT"/irrcrop1.png",TEX_ROOT"/mixedcrop1.png",
+    TEX_ROOT"/naturalcrop1.png",TEX_ROOT"/cropgrass1.png",TEX_ROOT"/cropgrass1.png",
+    TEX_ROOT"/shrub1.png",TEX_ROOT"/deciduous1.png",TEX_ROOT"/forest1a.png",
+    TEX_ROOT"/mixedforest.png",TEX_ROOT"/shrub1.png",TEX_ROOT"/airport.png",
+    TEX_ROOT"/airport.png",TEX_ROOT"/rock.png",TEX_ROOT"/glacier3.png",
+    TEX_ROOT"/golfcourse1.png",TEX_ROOT"/airport.png",TEX_ROOT"/deciduous1.png",
+    TEX_ROOT"/city1.png",TEX_ROOT"/water-lake.png",TEX_ROOT"/rock.png",
+    TEX_ROOT"/irrcrop1.png",TEX_ROOT"/asphalt.png",TEX_ROOT"/rock.png",
+    TEX_ROOT"/Town1.png",TEX_ROOT"/gravel.png",TEX_ROOT"/irrcrop1.png",
+    TEX_ROOT"/Runway/lf_dbl_solid_yellow.png",TEX_ROOT"/Runway/lf_runway_hold_border.png",
+    TEX_ROOT"/Runway/pa_0l.png",TEX_ROOT"/Runway/pa_2l.png",TEX_ROOT"/Runway/pa_2r.png",
+    TEX_ROOT"/Runway/pa_4r.png",TEX_ROOT"/Runway/pa_aim.png",TEX_ROOT"/Runway/pa_centerline.png",
+    TEX_ROOT"/Runway/pa_dspl_arrows.png",TEX_ROOT"/Runway/pa_dspl_thresh.png",TEX_ROOT"/Runway/pa_rest.png",
+    TEX_ROOT"/Runway/pa_shoulder_f1.png",TEX_ROOT"/Runway/pa_threshold.png",TEX_ROOT"/Runway/pc_helipad.png",
+    TEX_ROOT"/Runway/pc_tiedown.png",TEX_ROOT"/Runway/grass_rwy.png"
+};
+
+static char *names[] = {
+    "Freeway","Railroad","Stream",
+    "Watercourse","Canal","Urban",
+    "DryCrop","IrrCrop","ComplexCrop",
+    "NaturalCrop","CropGrass","Grassland",
+    "Scrub","DeciduousForest","EvergreenForest",
+    "MixedForest","Sclerophyllous","Airport",
+    "Grass","BarrenCover","Glacier",
+    "GolfCourse","Greenspace","Heath",
+    "Industrial","Lake","OpenMining",
+    "Orchard","Road","Rock","Town",
+    "Transport","Vineyard","lf_dbl_solid_yellow",
+    "lf_runway_hold_border","pa_0l","pa_2l",
+    "pa_2r","pa_4r","pa_aim",
+    "pa_centerline","pa_dspl_arrows","pa_dspl_thresh",
+    "pa_rest","pa_shoulder_f","pa_threshold",
+    "pc_heli","pc_tiedown","grass_rwy"
+};
+
 
 Texture *texture_new(const char *filename, const char *name)
 {

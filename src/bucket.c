@@ -301,7 +301,7 @@ Mesh *sg_bucket_get_mesh(SGBucket *self)
     char buffer[256];
 //    printf("Getting mesh for tile %p\n", self);
     if(!self->mesh){
-        snprintf(buffer, 256, "/home/samuel/dev/Terrain/%s", sg_bucket_getfilename(self));
+        snprintf(buffer, 256, TERRAIN_ROOT"/%s", sg_bucket_getfilename(self));
         printf("Bucket %p: Will load next bucket: path=%s\n",self, buffer);
         self->mesh = mesh_new_from_file(buffer);
     }

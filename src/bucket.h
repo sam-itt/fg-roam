@@ -2,6 +2,10 @@
 #define BUCKET_H
 #include "mesh.h"
 
+#ifndef TERRAIN_ROOT
+#define TERRAIN_ROOT "/home/samuel/dev/Terrain"
+#endif
+
 #define 	SG_EPSILON   0.0000001
 /**
  * standard size of a bucket in degrees (1/8 of a degree)

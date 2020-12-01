@@ -21,7 +21,7 @@ BasicShader *basic_shader_init(BasicShader *self)
 {
     bool rv;
 
-    if(!shader_init(SHADER(self), "vertex.gl", "fragment.gl"))
+    if(!shader_init(SHADER(self), SHADER_ROOT"/vertex.gl", SHADER_ROOT"/fragment.gl"))
         return NULL;
 
     rv = shader_get_attribute_locationp(SHADER(self), "position", &(self->position));

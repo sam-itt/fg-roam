@@ -17,13 +17,17 @@
 
 #define SIZE 1.0f
 
+#ifndef SKY_ROOT
+#define SKY_ROOT "."
+#endif
+
 static const char *faces[] = {
-    "resources/right.png",
-    "resources/left.png",
-    "resources/top.png",
-    "resources/bottom.png",
-    "resources/back.png",
-    "resources/front.png"
+    SKY_ROOT"/resources/right.png",
+    SKY_ROOT"/resources/left.png",
+    SKY_ROOT"/resources/top.png",
+    SKY_ROOT"/resources/bottom.png",
+    SKY_ROOT"/resources/back.png",
+    SKY_ROOT"/resources/front.png"
 };
 #if 1
 static float vertices[] = {
