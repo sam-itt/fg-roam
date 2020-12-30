@@ -7,23 +7,8 @@
 #include "btg-io.h"
 #include "texture.h"
 #include "basic-shader.h"
-
-#define USE_INT_INDICES 0
-
-/* This will define the max indice value that can
- * be stored, not the max number of indices
- * OpenGL ES 2.0 wants USHORT indices and we
- * want support it
- * */
-#if USE_INT_INDICES
-typedef GLuint indice_t;
-#define INDICE_TYPE GL_UNSIGNED_INT
-#define INDICE_MAX UINT32_MAX
-#else
-typedef GLushort indice_t;
-#define INDICE_TYPE GL_UNSIGNED_SHORT
-#define INDICE_MAX UINT16_MAX
-#endif
+#include "vertex-set.h"
+#include "indice.h"
 
 typedef enum{
     PositionBuffer,
@@ -36,11 +21,13 @@ typedef struct{
     /*Texture associated with this mesh*/
     Texture *texture;
 
-    /*Vertex attributes*/
+    /*Vertices, in a specialized hash*/
+    VertexSet *vset;
+
+    /*Vertex attributes, flattened from above hash*/
     SGVec3f *positions; /*Vertex coordinates*/
     SGVec2f *texcoords; /*Texture coordinates*/
     indice_t n_vertices; /*Actual vertices in the arrays (vertices, texs)*/
-    indice_t allocated_vertices; /*Allocated size*/
 
     /*Indices into the above data, to be passed to OpenGL in drawElements*/
     indice_t *indices;
@@ -52,7 +39,7 @@ typedef struct{
 }VGroup;
 
 
-typedef struct{
+typedef struct _Mesh{
     VGroup *groups;
     size_t n_groups;
 

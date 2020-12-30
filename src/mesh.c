@@ -19,10 +19,6 @@
 #include "geodesy.h"
 #include "cglm/mat4d.h"
 
-#define position_equal(p1, p2) (((p1)->x == (p2)->x) && ((p1)->y == (p2)->y) && ((p1)->z == (p2)->z))
-#define texcoord_equal(t1, t2) ((t1)->x == (t2)->x) && ((t1)->y == (t2)->y)
-
-#define VTX_CHUNK 8
 
 /**
  * @brief Inits a VGroup to make it able to hold as much as @p n_triangles
@@ -48,15 +44,12 @@ VGroup *vgroup_init(VGroup *self, const char *material, size_t n_triangles)
 
     /* We have the number of indices, but we don't know yet how many different
      * vertices (unique set of positions/texcoords/normals/etc) these indices will
-     * index into. Start off with 30% less vertices than indices (optimistic) and
-     * then grow by VTX_CHUNK increments.
-     * This is not optimal and wastes memory and time. Better count the actual number
-     * and allocate just as needed
-     * */
-    self->allocated_vertices = self->allocated_indices * 0.7;
-    self->positions = malloc(sizeof(SGVec3f)*self->allocated_vertices);
-    self->texcoords = malloc(sizeof(SGVec2f)*self->allocated_vertices);
-
+     * index into. Start off with 30% less vertices than indices (optimistic) and let
+     * the VertexSet handle it.
+     */
+    self->vset = vertex_set_new(self->allocated_indices * 0.7);
+    if(!self->vset)
+        return NULL;
     return self;
 }
 
@@ -71,6 +64,8 @@ VGroup *vgroup_init(VGroup *self, const char *material, size_t n_triangles)
  */
 void vgroup_dispose(VGroup *self)
 {
+    if(self->vset)
+        vertex_set_free(self->vset);
     if(self->indices)
         free(self->indices);
     /*TODO: Interwine the coordinates and propertires to deal with all of the
@@ -102,44 +97,12 @@ void vgroup_dispose(VGroup *self)
 long vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex)
 {
     long rv = 0;
+    IndexedVertex *iv;
 
-    for(int i = 0; i < self->n_vertices; i++){
-        if(position_equal(&(self->positions[i]), v) && texcoord_equal(&(self->texcoords[i]), tex)){
-            return i;
-        }
-    }
-
-    if(self->n_vertices == self->allocated_vertices){
-        void *tmp;
-        /*Grow 'positions' attribute*/
-        self->allocated_vertices += VTX_CHUNK;
-        tmp = reallocarray(self->positions, self->allocated_indices, sizeof(SGVec3f));
-        if(!tmp){
-            self->allocated_vertices -= VTX_CHUNK;
-            return -1;
-        }
-        self->positions = tmp;
-        /*Grow 'texcoords' attribute*/
-        tmp = reallocarray(self->texcoords, self->allocated_indices, sizeof(SGVec2f));
-        if(!tmp){
-            /* Half-assed situation where the positions have been successfuly grown
-             * but not the texture. We still have to fail and consider the lowest
-             * common denominator. Better interwine positions+texcoords(+normals)
-             * and fail at once*/
-            self->allocated_vertices -= VTX_CHUNK;
-            return -1;
-        }
-        self->texcoords = tmp;
-    }
-
-    /*If we get here, we need to add v into the array*/
-    rv = self->n_vertices;
-    self->positions[rv] = (SGVec3f){v->x,v->y,v->z};
-    self->texcoords[rv].x = tex->x;
-    self->texcoords[rv].y = tex->y;
-    self->n_vertices++;
-
-    return(rv);
+    iv = vertex_set_add_vertex(self->vset, v, tex);
+    if(iv)
+        return iv->index;
+    return -1;
 }
 
 /**
@@ -158,6 +121,7 @@ bool vgroup_add_triangle(VGroup *self, SGVec3d *v1, SGVec2f *t1, SGVec3d *v2, SG
 {
     size_t idx[3];
 
+    /*TODO: Handle failure*/
     idx[0] = vgroup_add_vertex(self, v1, t1);
     idx[1] = vgroup_add_vertex(self, v2, t2);
     idx[2] = vgroup_add_vertex(self, v3, t3);
@@ -202,8 +166,8 @@ size_t vgroup_get_size(VGroup *self, bool data_only)
         rv += sizeof(SGVec2f) * self->n_vertices;
         rv += sizeof(indice_t) * self->n_indices;
     }else{
-        rv += sizeof(SGVec3f) * self->allocated_vertices;
-        rv += sizeof(SGVec2f) * self->allocated_vertices;
+        rv += sizeof(SGVec3f) * self->n_vertices;
+        rv += sizeof(SGVec2f) * self->n_vertices;
         rv += sizeof(indice_t) * self->allocated_indices;
         rv += sizeof(VGroup);
     }
@@ -334,6 +298,13 @@ Mesh *mesh_prepare(Mesh *self)
     VGroup *group;
     for(unsigned int i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
+        if(!group->positions){
+            bool rv;
+            rv = vertex_set_flatten(group->vset, &group->n_vertices, &group->positions, &group->texcoords);
+            if(!rv)
+                printf("Flattening failed, problems ahead !!\n");
+            group->vset = vertex_set_free(group->vset);
+        }
 
         glGenBuffers(NBuffers, group->buffers);
 

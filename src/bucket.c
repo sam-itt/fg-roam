@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "SDL_timer.h"
 #include "bucket.h"
 #include "misc.h"
 
@@ -299,11 +300,17 @@ void sg_bucket_sibling_set(SGBucket *self, SGBucket *dest, int dx, int dy)
 Mesh *sg_bucket_get_mesh(SGBucket *self)
 {
     char buffer[256];
+    Uint32 start,end;
+
 //    printf("Getting mesh for tile %p\n", self);
     if(!self->mesh){
         snprintf(buffer, 256, TERRAIN_ROOT"/%s", sg_bucket_getfilename(self));
         printf("Bucket %p: Will load next bucket: path=%s\n",self, buffer);
+        start = SDL_GetTicks();
         self->mesh = mesh_new_from_file(buffer);
+        end = SDL_GetTicks();
+        printf("Mesh loaded from disk in %d ms\n",end-start);
+
     }
     return self->mesh;
 }
