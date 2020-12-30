@@ -5,3 +5,4 @@ test/btg/test-btg
 test/btg/test-v7.obj
 test/btg/test.obj
 test/coords/test-coords
+.clangd
