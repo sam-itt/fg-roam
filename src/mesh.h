@@ -4,7 +4,6 @@
 #include <GL/glut.h>
 #include <cglm/cglm.h>
 
-#include "btg-io.h"
 #include "texture.h"
 #include "basic-shader.h"
 #include "vertex-set.h"

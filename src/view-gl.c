@@ -13,7 +13,6 @@
 
 #include <cglm/cglm.h>
 
-#include "btg-io.h"
 #include "texture.h"
 #include "plane.h"
 #include "mesh.h"

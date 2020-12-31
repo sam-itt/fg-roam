@@ -8,40 +8,8 @@
 #define MAX_TC_SETS     (4)
 #define MAX_VAS         (8)
 
-
-typedef struct {
-    double x;
-    double y;
-    double z;
-} SGVec3d;
-
-typedef struct {
-    float x;
-    float y;
-    float z;
-} SGVec3f;
-
-#define sg_vec_equals(a, b) ((a)->x == (b)->x) && ((a)->y == (b)->y) && ((a)->z == (b)->z)
-
-typedef struct {
-    float x;
-    float y;
-} SGVec2f;
-
-
-typedef struct {
-    float red;
-    float green;
-    float blue;
-    float alpha;
-} SGVec4f;
-
-
-typedef struct {
-    SGVec3d center;
-    double radius;
-} SGSphered;
-
+#include "sg-vec.h"
+#include "sg-sphere.h"
 
 typedef struct {
     unsigned short version;
@@ -101,8 +69,4 @@ void sg_bin_object_free(SGBinObject *self);
 bool sg_bin_object_write_obj(SGBinObject *self, const char *filename);
 void sg_bin_object_load(SGBinObject *self, const char *filename);
 
-
-//TODO:Move in a dedicated file
-double sg_vect3d_distSqr(SGVec3d *a, SGVec3d *b);
-void sg_sphered_expand_by(SGSphered *self, SGVec3d *v);
 #endif

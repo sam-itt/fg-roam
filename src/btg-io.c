@@ -6,6 +6,7 @@
 #include <math.h>
 
 #include "btg-io.h"
+#include "sg-sphere.h"
 
 #define SG_SCENERY_FILE_FORMAT "0.4"
 
@@ -310,68 +311,6 @@ gzFile file_fopen(const char *filename)
         free(with_gz);
     }
     return rv;
-}
-
-void sg_vect3f_normalize(SGVec3f *self)
-{
-
-    float normv = sqrt((self->x*self->x) + (self->y*self->y) + (self->z*self->z));
-    if(normv <= FLT_MIN)
-        *self = (SGVec3f){0.0, 0.0, 0.0};
-    else
-        *self = (SGVec3f){1/normv*self->x,1/normv*self->y,1/normv*self->z};
-}
-
-double sg_vect3d_distSqr(SGVec3d *a, SGVec3d *b)
-{
-    SGVec3d tmp;
-
-    tmp = (SGVec3d){
-        .x = a->x - b->x,
-        .y = a->y - b->y,
-        .z = a->z - b->z,
-    };
-
-    return (tmp.x*tmp.x) + (tmp.y*tmp.y) + (tmp.z*tmp.z);
-}
-
-bool sg_sphered_valid(SGSphered *self)
-{ 
-    return 0 <= self->radius; 
-}
-
-bool sg_sphered_empty(SGSphered *self) 
-{ 
-    return !sg_sphered_valid(self);
-}
-
-void sg_sphered_expand_by(SGSphered *self, SGVec3d *v)
-{
-    if (sg_sphered_empty(self)) {
-      self->center = *v;
-      self->radius = 0;
-      return;
-    }
-
-    double dist2 = sg_vect3d_distSqr(&(self->center), v);
-    if (dist2 <= (self->radius*self->radius))
-      return;
-
-    double dist = sqrt(dist2);
-    double newRadius = (double)(0.5)*(self->radius + dist);
-//    self->center += ((newRadius - self->radius)/dist)*(v - self->center);
-    SGVec3d delta_v = (SGVec3d){
-        .x = v->x - self->center.x,
-        .y = v->y - self->center.y,
-        .z = v->z - self->center.z,
-    };
-    double factor = (newRadius - self->radius)/dist;
-    self->center = (SGVec3d){
-        .x = self->center.x + factor * delta_v.x,
-        .y = self->center.y + factor * delta_v.y,
-        .z = self->center.z + factor * delta_v.z,
-    };
-    self->radius = newRadius;
 }
 
 SGBinObject *sg_bin_object_new(void)

@@ -1,11 +1,12 @@
 #ifndef VERTEX_SET_H
 #define VERTEX_SET_H
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 
 #include "indice.h"
-#include "btg-io.h"
+#include "sg-vec.h"
 
 typedef struct _IndexedVertex{
     /* 'virtual' index of the vertex presented to outside
