@@ -5,7 +5,7 @@
 #define MAX_BUCKETS 20
 
 typedef struct{
-    SGBucket *buckets[MAX_BUCKETS]; 
+    SGBucket *buckets[MAX_BUCKETS];
 //    int n_buckets;
 
 }TileManager;

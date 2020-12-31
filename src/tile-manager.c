@@ -111,7 +111,7 @@ SGBucket **tile_manager_get_tiles(TileManager *self, double lat, double lon, dou
         if(!self->buckets[i]) continue;
         self->buckets[i]->active = false;
      }
-   
+
     box = geo_bounding_box(lat, lon, vis);
     /*box= 0:ul_y, 1:ul_x, 2:dr_y, 3:dr_x*/
     //up left

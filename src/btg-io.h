@@ -39,10 +39,10 @@ typedef std::vector < vai_list > group_vai_list;
     GPtrArray *pts_c;   // points color index: PtrArray of int GArray
     GPtrArray *pts_tcs; // points texture coordinates ( up to 4 sets ): PtrArray of sized PtrArray of int GArray
     GPtrArray *pts_vas; // points vertex attributes ( up to 8 sets ): PtrArray of sized PtrArray of int GArray
-    GPtrArray *pt_materials; // points materials: GPtrArray of char * 
+    GPtrArray *pt_materials; // points materials: GPtrArray of char *
 
-    GPtrArray *tris_v;              	// triangles vertex index: PtrArray of int GArray 
-    GPtrArray *tris_n;              	// triangles normal index: PtrArray of int GArray 
+    GPtrArray *tris_v;              	// triangles vertex index: PtrArray of int GArray
+    GPtrArray *tris_n;              	// triangles normal index: PtrArray of int GArray
     GPtrArray *tris_c;              	// triangles color index: PtrArray of int GArray
     GPtrArray *tris_tcs;            // triangles texture coordinates ( up to 4 sets ): PtrArray of sized PtrArray of int GArray
     GPtrArray *tris_vas;            // triangles vertex attributes ( up to 8 sets ): PtrArray of sized PtrArray of int GArray
@@ -58,7 +58,7 @@ typedef std::vector < vai_list > group_vai_list;
     GPtrArray *fans_v;              	// fans vertex index: PtrArray of int GArray
     GPtrArray *fans_n;              	// fans normal index: PtrArray of int GArray
     GPtrArray *fans_c;              	// fans color index: PtrArray of int GArray
-    GPtrArray *fans_tcs;            // fanss texture coordinates ( up to 4 sets ): PtrArray of sized PtrArray of int GArray 
+    GPtrArray *fans_tcs;            // fanss texture coordinates ( up to 4 sets ): PtrArray of sized PtrArray of int GArray
     GPtrArray *fans_vas;            // fans vertex attributes ( up to 8 sets ): PtrArray of sized PtrArray of int GArray
     GPtrArray *fan_materials;	        // fans materials: GPtrArray of char *
 } SGBinObject;

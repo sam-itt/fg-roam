@@ -65,7 +65,7 @@ void sg_bucket_set(SGBucket *self, double dlon, double dlat)
         if ( dlon >= 0 ) {
             self->lon = (int)( (int)(self->lon / span) * span);
         } else {
-            // cout << " lon = " << lon 
+            // cout << " lon = " << lon
             //  << "  tmp = " << (int)((lon-1) / span) << endl;
             self->lon = (int)( (int)((self->lon + 1) / span) * span - span);
             if ( self->lon < -180 ) {
@@ -140,7 +140,7 @@ const char *sg_bucket_gen_base_path(SGBucket *self)
     if ( main_lon < 0 ) {
 	main_lon *= -1;
     }
-    
+
     top_lat = self->lat / 10;
     main_lat = self->lat;
     if ( (self->lat < 0) && (top_lat * 10 != self->lat) ) {
@@ -158,7 +158,7 @@ const char *sg_bucket_gen_base_path(SGBucket *self)
     }
 
     snprintf(raw_path, 256, "%c%03d%c%02d/%c%03d%c%02d",
-	    hem, top_lon, pole, top_lat, 
+	    hem, top_lon, pole, top_lat,
 	    hem, main_lon, pole, main_lat);
 
     return raw_path;
@@ -183,7 +183,7 @@ const char *sg_bucket_getfilename(SGBucket *self)
     static char rv[256];
 
     snprintf(rv, 256, "%s/%s.btg", sg_bucket_gen_base_path(self), sg_bucket_gen_index_str(self));
-    
+
     return rv;
 }
 
@@ -232,7 +232,7 @@ double sg_bucket_get_highest_lat(SGBucket *self)
         // to y to achieve this.
         ++adjustedY;
     }
-    
+
 	return self->lat + (adjustedY / 8.0);
 }
 
@@ -249,7 +249,7 @@ double sg_bucket_get_width_m(SGBucket *self)
         // return an arbitrary small value so all tiles are loaded
         return 10.0;
     }
-    
+
     double local_radius = cos_lat * SG_EQUATORIAL_RADIUS_M;
     double local_perimeter = local_radius * (M_PI*2);
     double degree_width = local_perimeter / 360.0;
@@ -259,39 +259,39 @@ double sg_bucket_get_width_m(SGBucket *self)
 
 SGBucket *sg_bucket_sibling(SGBucket *self, int dx, int dy)
 {
-    
+
     double clat = sg_bucket_get_center_lat(self) + dy * SG_BUCKET_SPAN;
     // return invalid here instead of clipping, so callers can discard
     // invalid buckets without having to check if it's an existing one
     if ((clat < -90.0) || (clat > 90.0)) {
         return NULL;
     }
-    
+
     // find the lon span for the new latitude
     double span = sg_bucket_span( clat );
-    
+
     double tmp = sg_bucket_get_center_lon(self) + dx * span;
     tmp = normalize_periodicd(-180.0, 180.0, tmp);
-    
+
     return sg_bucket_new(tmp, clat);
 }
 
 void sg_bucket_sibling_set(SGBucket *self, SGBucket *dest, int dx, int dy)
 {
-    
+
     double clat = sg_bucket_get_center_lat(self) + dy * SG_BUCKET_SPAN;
     // return invalid here instead of clipping, so callers can discard
     // invalid buckets without having to check if it's an existing one
     if ((clat < -90.0) || (clat > 90.0)) {
         memset(dest, 0, sizeof(SGBucket));
     }
-    
+
     // find the lon span for the new latitude
     double span = sg_bucket_span( clat );
-    
+
     double tmp = sg_bucket_get_center_lon(self) + dx * span;
     tmp = normalize_periodicd(-180.0, 180.0, tmp);
-    
+
     sg_bucket_set(dest, tmp, clat);
 }
 

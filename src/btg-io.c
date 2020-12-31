@@ -153,7 +153,7 @@ void sgReadDoubles ( gzFile fd, const unsigned int n, double *var )
 }
 
 
-void sgReadBytes ( gzFile fd, const unsigned int n, void *var ) 
+void sgReadBytes ( gzFile fd, const unsigned int n, void *var )
 {
     if ( n == 0) return;
     if ( gzread ( fd, var, n ) != (int)n ) {
@@ -708,11 +708,11 @@ void sg_bin_object_read_object(SGBinObject *self, gzFile fp,
     unsigned char idx_mask;
     unsigned int  vertex_attrib_mask;
     int j;
-    GArray *vs; 
-    GArray *ns; 
-    GArray *cs; 
-    GPtrArray *tcs; 
-    GPtrArray *vas; 
+    GArray *vs;
+    GArray *ns;
+    GArray *cs;
+    GPtrArray *tcs;
+    GPtrArray *vas;
     char material[256];
     SGSimpleBuffer *buf;
 
@@ -840,7 +840,7 @@ void sg_bin_object_read_object(SGBinObject *self, gzFile fp,
 
 
 
-void sg_bin_object_load(SGBinObject *self, const char *filename) 
+void sg_bin_object_load(SGBinObject *self, const char *filename)
 {
     SGVec3d p;
     int i, k;
@@ -854,7 +854,7 @@ void sg_bin_object_load(SGBinObject *self, const char *filename)
         printf("Error opening for reading (and .gz): %s\n",filename);
         return;
     }
-   
+
     buf =  sg_simple_buffer_sized_new(32768); //32 kb
 
 
@@ -1180,7 +1180,7 @@ bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
         char *material;
         while ( start < self->tri_materials->len ) {
             // find next group
-            material = g_ptr_array_index(self->tri_materials,start); 
+            material = g_ptr_array_index(self->tri_materials,start);
            // printf("tri_materials.size: %d\n", self->tri_materials->len);
             while ( (end < self->tri_materials->len) &&
                     (!strcmp(material, g_ptr_array_index(self->tri_materials,end))) )
@@ -1190,9 +1190,9 @@ bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
             }
             //printf("group = %d to %d\n",start, end-1);
             //
-            SGSphered d = (SGSphered){ 
+            SGSphered d = (SGSphered){
                 .center = (SGVec3d){0.0, 0.0, 0.0},
-                .radius = -1.0 
+                .radius = -1.0
             };
             for ( i = start; i < end; ++i ) {
                 GArray *a = g_ptr_array_index(self->tris_v, i);
@@ -1250,7 +1250,7 @@ bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
         char *material;
         while ( start < self->strip_materials->len ) {
             // find next group
-            material = g_ptr_array_index(self->strip_materials, start); 
+            material = g_ptr_array_index(self->strip_materials, start);
             while ( (end < self->strip_materials->len) &&
                     (!strcmp(material, g_ptr_array_index(self->strip_materials, end))) )
                 {
@@ -1258,11 +1258,11 @@ bool sg_bin_object_write_obj(SGBinObject *self, const char *filename)
                     end++;
                 }
             // cout << "group = " << start << " to " << end - 1 << endl;
-            
-            
-            SGSphered d = (SGSphered){ 
+
+
+            SGSphered d = (SGSphered){
                 .center = (SGVec3d){0.0, 0.0, 0.0},
-                .radius = -1.0 
+                .radius = -1.0
             };
             for ( i = start; i < end; ++i ) {
                 GArray *a = g_ptr_array_index(self->tris_v, i);

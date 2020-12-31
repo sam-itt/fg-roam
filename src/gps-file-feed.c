@@ -60,7 +60,7 @@ bool gps_file_feed_load_trace(GpsFileFeed *self, const char *filename)
         if(!self->trace.records)
             exit(EXIT_FAILURE);
     }
-    memset(self->trace.records, 0, self->trace.nrecords*sizeof(GpsRecord)); 
+    memset(self->trace.records, 0, self->trace.nrecords*sizeof(GpsRecord));
 
     fread(self->trace.records, sizeof(GpsRecord), self->trace.nrecords, fp);
     GpsRecord *current;
@@ -109,7 +109,7 @@ void gps_file_feed_get(GpsFileFeed *self, GpsRecord *record, double dt)
     }else{
         *record = self->trace.records[i];
     }
-//    printf("returning:\n"); 
+//    printf("returning:\n");
 //    gps_record_dump(record);
 //    printf("\n");
 }

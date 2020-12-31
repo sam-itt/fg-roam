@@ -12,7 +12,7 @@ typedef struct{
 
 typedef struct{
     GpsFeed parent;
-    
+
     GpsTrace trace;
 }GpsFileFeed;
 

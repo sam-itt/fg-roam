@@ -13,7 +13,7 @@ typedef struct{
 #define GPS_RECORD_INVALID (GpsRecord){0, NAN, NAN, NAN}
 #define gps_record_equals(a,b) (((a)->time == (b)->time) && ((a)->lat == (b)->lat) && ((a)->lon == (b)->lon) && ((a)->alt == (b)->alt))
 
-typedef struct _GpsFeed GpsFeed; 
+typedef struct _GpsFeed GpsFeed;
 typedef void (*GetNextFunc)(GpsFeed *self, GpsRecord *record);
 
 struct _GpsFeed{
