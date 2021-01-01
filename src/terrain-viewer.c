@@ -105,7 +105,7 @@ void terrain_viewer_frame(TerrainViewer *self)
     if(self->dirty){
         glm_mat4d_identity(self->projection_view);
         glm_mat4d_mul(self->projection, self->plane->view, self->projection_view);
-
+        self->dirty = false;
     }
 
     glEnable(GL_DEPTH_TEST);   // skybox should be drawn behind anything else
