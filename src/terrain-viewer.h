@@ -16,9 +16,16 @@ typedef struct{
     Skybox *skybox; /*Might get rid of it*/
 
     bool dirty;
+    /*TODO: Put that in  plane/camera class?*/
+    float fov_rad;
+    float near_plane;
     /*Matrices*/
     mat4d projection;
     mat4d projection_view;
+
+    /*TODO: Look into using doubles*/
+    vec4 fplanes[6]; /*frustrum planes*/
+    vec4 frustrum_bs; /*frustrum bounding sphere*/
 }TerrainViewer;
 
 

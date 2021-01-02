@@ -1,3 +1,5 @@
+#include "frustum-ext.h"
+#include "sg-sphere.h"
 #define _GNU_SOURCE
 #define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
@@ -50,6 +52,7 @@ VGroup *vgroup_init(VGroup *self, const char *material, size_t n_triangles)
     self->vset = vertex_set_new(self->allocated_indices * 0.7);
     if(!self->vset)
         return NULL;
+    self->bs.radius = -1.0;
     return self;
 }
 
@@ -100,8 +103,10 @@ long vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex)
     IndexedVertex *iv;
 
     iv = vertex_set_add_vertex(self->vset, v, tex);
-    if(iv)
+    if(iv){
+        sg_sphered_expand_by(&self->bs, v);
         return iv->index;
+    }
     return -1;
 }
 
@@ -304,8 +309,18 @@ Mesh *mesh_prepare(Mesh *self)
             if(!rv)
                 printf("Flattening failed, problems ahead !!\n");
             group->vset = vertex_set_free(group->vset);
+            group->bs.center.x += self->bs.center.x;
+            group->bs.center.y += self->bs.center.y;
+            group->bs.center.z += self->bs.center.z;
         }
-
+#if 0
+        printf("VGroup #%d bs: %.4f %.4f %.4f %.2f\n",i,
+            group->bs.center.x,
+            group->bs.center.y,
+            group->bs.center.z,
+            group->bs.radius
+        );
+#endif
         glGenBuffers(NBuffers, group->buffers);
 
         glBindBuffer(GL_ARRAY_BUFFER, group->buffers[PositionBuffer]);
@@ -344,7 +359,7 @@ Mesh *mesh_prepare(Mesh *self)
  * @param u_mvp Handle to the Model-View-Projection uniform matrix on the shader
  * @param vp The current View-Projection matrix.
  */
-void mesh_render_buffer(Mesh *self, BasicShader *shader, mat4d vp)
+void mesh_render_buffer(Mesh *self, BasicShader *shader, mat4d vp, vec4 frustum[6], vec4 frustrum_bs)
 {
     /* TODO: Maybe get the mv out of here (rendermaanger that applies the matrix
      * before calling mesh_render_buffer?).
@@ -353,6 +368,10 @@ void mesh_render_buffer(Mesh *self, BasicShader *shader, mat4d vp)
     VGroup *group;
     mat4d mvp;
     mat4 mvpf;
+    vec4 mbs = {self->bs.center.x,self->bs.center.y,self->bs.center.z,self->bs.radius};
+
+    if(!glm_sphere_sphere(frustrum_bs, mbs)){printf("sphere-culled mesh %p\n",self); return;}
+    if(!glm_frustum_cgsphered(frustum, &self->bs)) return;
 
     glm_mat4d_mul(vp, self->transformation, mvp);
     glm_mat4d_ucopyf(mvp, mvpf);
@@ -360,6 +379,10 @@ void mesh_render_buffer(Mesh *self, BasicShader *shader, mat4d vp)
 
     for(GLuint i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
+        vec4 gbs = {group->bs.center.x,group->bs.center.y,group->bs.center.z,group->bs.radius};
+
+        if(!glm_sphere_sphere(frustrum_bs, gbs)){continue;}
+        if(!glm_frustum_cgsphered(frustum, &group->bs)) {continue;}
 
         glActiveTexture(GL_TEXTURE0 );
         glBindTexture(GL_TEXTURE_2D, group->texture ? group->texture->id : 0); /*TODO: static_branch on tex loading*/
@@ -431,6 +454,10 @@ Mesh *mesh_new_from_btg(const char *filename)
                 terrain->gbs_center.z
         }
     );
+    rv->bs = (SGSphered){
+        .center = terrain->gbs_center,
+        .radius = terrain->gbs_radius
+    };
 
     /*Second pass, actually read the data*/
     start = 0;

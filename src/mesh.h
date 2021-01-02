@@ -8,6 +8,7 @@
 #include "basic-shader.h"
 #include "vertex-set.h"
 #include "indice.h"
+#include "sg-sphere.h"
 
 typedef enum{
     PositionBuffer,
@@ -33,6 +34,10 @@ typedef struct{
     size_t n_indices; /*Actual number of valid indices*/
     size_t allocated_indices; /*We have room to store allocated_indices indices*/
 
+    /*In world coordinates, i.e already transformed
+     * during prepare stage*/
+    SGSphered bs; /*bounding sphere*/
+
     /*Buffers: OpenGL handles*/
     GLuint buffers[NBuffers];
 }VGroup;
@@ -43,6 +48,10 @@ typedef struct _Mesh{
     size_t n_groups;
 
     mat4d transformation;
+
+    /*In world coordinates, i.e already transformed
+     * during prepare stage*/
+    SGSphered bs;
 }Mesh;
 
 VGroup *vgroup_init(VGroup *self, const char *material, size_t n_triangles);
@@ -60,7 +69,7 @@ bool mesh_set_size(Mesh *self, size_t size);
 VGroup *mesh_add_vgroup(Mesh *self, const char *material, size_t n_triangles);
 
 Mesh *mesh_prepare(Mesh *self);
-void mesh_render_buffer(Mesh *self, BasicShader *shader, mat4d vp);
+void mesh_render_buffer(Mesh *self, BasicShader *shader, mat4d vp, vec4 frustum[6], vec4 frustrum_bs);
 
 void mesh_dump(Mesh *self);
 
