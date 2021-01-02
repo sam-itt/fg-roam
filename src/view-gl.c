@@ -1,3 +1,4 @@
+#include "SDL_timer.h"
 #define _GNU_SOURCE 1
 #define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
@@ -222,6 +223,10 @@ int main(int argc, char **argv)
     Uint32 acc = 0;
     Uint32 nframes = 0;
 
+    Uint32 tframe_acc = 0;
+    Uint32 tframe_start;
+    Uint32 ntframes = 0;
+
     startms = SDL_GetTicks();
     while(!done){
         ticks = SDL_GetTicks();
@@ -255,7 +260,10 @@ int main(int argc, char **argv)
         glClearColor (1.0, 1.0, 1.0, 0.0);
         glClear (GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
+        tframe_start = SDL_GetTicks();
         terrain_viewer_frame(viewer);
+        tframe_acc += (SDL_GetTicks() - tframe_start);
+        ntframes++;
 
         SDL_GL_SwapWindow(window);
         nframes++;
@@ -279,6 +287,7 @@ int main(int argc, char **argv)
         }
         last_ticks = ticks;
     }
+    printf("Average terrain_viewer_frame duration: %f ms (%d calls)\n",(tframe_acc*1.0)/ntframes,ntframes);
     terrain_viewer_free(viewer);
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
