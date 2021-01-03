@@ -99,29 +99,32 @@ SGBucket *tile_manager_get_tile(TileManager *self, double lat, double lon)
     return tile_manager_get_tile_t(self, &tmp);
 }
 
-
-SGBucket **tile_manager_get_tiles(TileManager *self, double lat, double lon, double vis)
+/**
+ *
+ * vis in m
+ */
+SGBucket **tile_manager_get_tiles(TileManager *self, GeoLocation *location, float vis)
 {
     static SGBucket *rv[5];
     SGBucket tmp;
     bool found;
-    double *box;
+    GeoLocation nbox[2];
 
      for(int i = 0; i < MAX_BUCKETS; i++){
         if(!self->buckets[i]) continue;
         self->buckets[i]->active = false;
      }
 
-    box = geo_bounding_box(lat, lon, vis);
-    /*box= 0:ul_y, 1:ul_x, 2:dr_y, 3:dr_x*/
+    geo_location_bounding_coordinates(location, vis, nbox);
+
     //up left
-    rv[0] = tile_manager_get_tile(self, box[0], box[1]); //lat lon, Y X
+    rv[0] = tile_manager_get_tile(self, nbox[1].latitude, nbox[0].longitude); //lat lon, Y X
     //down left
-    rv[1] = tile_manager_get_tile(self, box[2], box[1]);
+    rv[1] = tile_manager_get_tile(self, nbox[0].latitude, nbox[0].longitude);
     //down right
-    rv[2] = tile_manager_get_tile(self, box[2], box[3]);
+    rv[2] = tile_manager_get_tile(self, nbox[0].latitude, nbox[1].longitude);
     //up right
-    rv[3] = tile_manager_get_tile(self, box[0], box[3]);
+    rv[3] = tile_manager_get_tile(self, nbox[1].latitude, nbox[1].longitude);
     rv[4] = NULL;
 
     for(int i = 0; i < 4; i++)

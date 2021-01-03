@@ -66,7 +66,7 @@ void plane_view(Plane *self)
 
    // The quaternion rotating from the earth centered frame to the
     // horizontal local frame
-    glm_quatd_from_lon_lat(hlOr, self->lon, self->lat);
+    glm_quatd_from_lon_lat(hlOr, self->geopos.longitude, self->geopos.latitude);
 
     // The rotation from the horizontal local frame to the basic view orientation
     glm_quatd_from_ypr(hlToBody, self->heading, self->pitch, self->roll);
@@ -115,11 +115,11 @@ void plane_set_attitude(Plane *p, double roll, double pitch, double heading)
  */
 void plane_set_position(Plane *self, double lat, double lon, double alt)
 {
-    self->lat = lat;
-    self->lon = lon;
+    self->geopos.latitude = lat;
+    self->geopos.longitude = lon;
     self->alt = alt;
 
-    SGGeodToCart(self->lat, self->lon, self->alt, &self->X, &self->Y, &self->Z);
+    SGGeodToCart(self->geopos.latitude, self->geopos.longitude, self->alt, &self->X, &self->Y, &self->Z);
 
     self->dirty = true;
 }
@@ -197,8 +197,8 @@ void plane_update_position2(Plane *self, time_t dt)
     double distRatioSine = sin(distRatio);
     double distRatioCosine = cos(distRatio);
 
-    double startLatRad = glm_rad(self->lat);
-    double startLonRad = glm_rad(self->lon);
+    double startLatRad = glm_rad(self->geopos.latitude);
+    double startLonRad = glm_rad(self->geopos.longitude);
 
     double startLatCos = cos(startLatRad);
     double startLatSin = sin(startLatRad);
@@ -209,8 +209,8 @@ void plane_update_position2(Plane *self, time_t dt)
         + atan2(sin(glm_rad(self->heading)) * distRatioSine * startLatCos,
             distRatioCosine - startLatSin * sin(endLatRads));
 
-    self->lat = glm_deg(endLatRads);
-    self->lon = glm_deg(endLonRads);
+    self->geopos.latitude = glm_deg(endLatRads);
+    self->geopos.longitude = glm_deg(endLonRads);
 
     self->alt = self->alt + (sinf(glm_rad(self->pitch)) * (self->speed*dt));
 

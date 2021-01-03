@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "geodesy.h"
+#include "geo-location.h"
 
 static double EARTH_A = NAN;
 static double EARTH_B = NAN;
@@ -425,34 +426,6 @@ double *geo_destination(double olat, double olon, double distance, double bearin
     return rv;
 }
 
-/**
- * Computes bounding geo box top left and down right coordinates (lat/lon)
- * which has its center on lat/lon (degrees) with a span of radius (km).
- *
- * <p>Returns a pointer to 4 doubles (lat1,lon1, lat2,lon2) all in degrees.
- * Pointerer references local static memory, the caller must not
- * free it.</p>
- *
- * @param clat center latitude in degrees
- * @param clon center longitude in degrees
- * @param radius  radius in km
- * @return       pointer to 4 doubles (lat,lon)*2, not to be freed
- */
-double *geo_bounding_box(double clat, double clon, double radius)
-{
-    static double rv[4];
-
-    double dlat = 360.0 * radius/EARTH_RADIUS;
-    double dlon = dlat * cos(clat*(M_PI/180));
-
-    rv[0] = clat - dlat; //up left latitude
-    rv[1] = clon - dlon; //up left longitude
-
-    rv[2] = clat + dlat; //up left latitude
-    rv[3] = clon + dlon; //up left longitude
-
-    return rv;
-}
 
 /*Teta in rads*/
 

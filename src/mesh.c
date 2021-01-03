@@ -370,7 +370,7 @@ void mesh_render_buffer(Mesh *self, BasicShader *shader, mat4d vp, vec4 frustum[
     mat4 mvpf;
     vec4 mbs = {self->bs.center.x,self->bs.center.y,self->bs.center.z,self->bs.radius};
 
-    if(!glm_sphere_sphere(frustrum_bs, mbs)){printf("sphere-culled mesh %p\n",self); return;}
+    if(!glm_sphere_sphere(frustrum_bs, mbs)){/*printf("sphere-culled mesh %p\n",self);*/ return;}
     if(!glm_frustum_cgsphered(frustum, &self->bs)) return;
 
     glm_mat4d_mul(vp, self->transformation, mvp);

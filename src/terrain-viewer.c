@@ -127,7 +127,7 @@ void terrain_viewer_frame(TerrainViewer *self)
     glEnable(GL_DEPTH_TEST);   // skybox should be drawn behind anything else
 
 
-    buckets = tile_manager_get_tiles(tile_manager_get_instance(), self->plane->lat, self->plane->lon, 1.0);
+    buckets = tile_manager_get_tiles(tile_manager_get_instance(), &(self->plane->geopos), 10000); /*10 km*/
     glUseProgram(SHADER(self->shader)->program_id);
     for(int i = 0; buckets[i] != NULL; i++){
         m = sg_bucket_get_mesh(buckets[i]);

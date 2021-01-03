@@ -5,12 +5,17 @@
 #include <GL/glut.h>
 #include <cglm/cglm.h>
 
+#include "geo-location.h"
+
 #include "gps-feed.h"
 #include "gps-file-feed.h"
 
 typedef struct{
+    GeoLocation geopos;
+#if 0
     double lat; /*degrees*/
     double lon; /*degrees*/
+#endif
     double alt; /*meters*/
 
     /*degrees*/
