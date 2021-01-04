@@ -18,6 +18,9 @@ typedef enum{
 }VGroupBuffer;
 
 typedef struct{
+    bool prepared;
+
+    char *material;
     /*Texture associated with this mesh*/
     Texture *texture;
 
@@ -58,7 +61,9 @@ VGroup *vgroup_init(VGroup *self, const char *material, size_t n_triangles);
 void vgroup_dispose(VGroup *self);
 long vgroup_add_vertex(VGroup *self, SGVec3d *v, SGVec2f *tex);
 bool vgroup_add_triangle(VGroup *self, SGVec3d *v1, SGVec2f *t1, SGVec3d *v2, SGVec2f *t2, SGVec3d *v3, SGVec2f *t3);
+bool vgroup_finish(VGroup *self, SGSphered *gbs);
 size_t vgroup_get_size(VGroup *self, bool data_only);
+bool vgroup_prepare(VGroup *self);
 
 Mesh *mesh_new_from_file(const char *filename);
 Mesh *mesh_new_from_btg(const char *filename);

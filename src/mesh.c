@@ -38,7 +38,8 @@ VGroup *vgroup_init(VGroup *self, const char *material, size_t n_triangles)
     if(self->indices)
         return NULL;
 
-    self->texture = texture_get_by_name(material);
+    self->material = strdup(material);
+//    self->texture = texture_get_by_name(material);
 
     /*Triangles are described by a set of 3 indices each*/
     self->allocated_indices = n_triangles * 3;
@@ -71,6 +72,8 @@ void vgroup_dispose(VGroup *self)
         vertex_set_free(self->vset);
     if(self->indices)
         free(self->indices);
+    if(self->material)
+        free(self->material);
     /*TODO: Interwine the coordinates and propertires to deal with all of the
      * at once*/
     if(self->positions)
@@ -78,6 +81,7 @@ void vgroup_dispose(VGroup *self)
     if(self->texcoords)
         free(self->texcoords);
     glDeleteBuffers(NBuffers, self->buffers);
+    /*TODO: Release texture*/
 }
 
 /**
@@ -179,6 +183,75 @@ size_t vgroup_get_size(VGroup *self, bool data_only)
     return rv;
 }
 
+bool vgroup_finish(VGroup *self, SGSphered *gbs)
+{
+    if(!self->positions){
+        bool rv;
+        rv = vertex_set_flatten(self->vset, &self->n_vertices, &self->positions, &self->texcoords);
+        if(!rv)
+            printf("Flattening failed, problems ahead !!\n");
+        self->vset = vertex_set_free(self->vset);
+        self->bs.center.x += gbs->center.x;
+        self->bs.center.y += gbs->center.y;
+        self->bs.center.z += gbs->center.z;
+#if 0
+        printf("VGroup %p bs: %.4f %.4f %.4f %.2f\n",self,
+            self->bs.center.x,
+            self->bs.center.y,
+            self->bs.center.z,
+            self->bs.radius
+        );
+#endif
+        return rv;
+    }
+    return false;
+}
+
+/**
+ * @brief Allocate various OpenGL resources for rendering. Just need to be
+ * called once.
+ *
+ * @param self The VGroup to work on.
+ * @return true when the VGroup has been successfully prepared.
+ */
+bool vgroup_prepare(VGroup *self)
+{
+    if(self->prepared) return true;
+
+    self->texture = texture_get_by_name(self->material);
+
+    glGenBuffers(NBuffers, self->buffers);
+
+    glBindBuffer(GL_ARRAY_BUFFER, self->buffers[PositionBuffer]);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        self->n_vertices*sizeof(SGVec3f),
+        self->positions,
+        GL_STATIC_DRAW
+    );
+
+    glBindBuffer(GL_ARRAY_BUFFER, self->buffers[TexCoordBuffer]);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        self->n_vertices*sizeof(SGVec2f),
+        self->texcoords,
+        GL_STATIC_DRAW
+    );
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->buffers[ElementBuffer]);
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        self->n_indices*sizeof(indice_t),
+        self->indices,
+        GL_STATIC_DRAW
+    );
+
+    self->prepared = true;
+    return true;
+}
+
+
+
 /**
  * @brief Creates a new mesh with @p size groups.
  *
@@ -229,8 +302,11 @@ Mesh *mesh_new_from_file(const char *filename)
 {
     Mesh *rv;
     rv = mesh_new_from_btg(filename);
-    if(rv)
-        mesh_prepare(rv);
+    for(size_t i = 0; i < rv->n_groups; i++){
+        vgroup_finish(&(rv->groups[i]), &rv->bs);
+    }
+//    if(rv)
+//        mesh_prepare(rv);
     return rv;
 }
 
@@ -299,53 +375,8 @@ VGroup *mesh_add_vgroup(Mesh *self, const char *material, size_t n_triangles)
  */
 Mesh *mesh_prepare(Mesh *self)
 {
-
-    VGroup *group;
-    for(unsigned int i = 0; i < self->n_groups; i++){
-        group = &(self->groups[i]);
-        if(!group->positions){
-            bool rv;
-            rv = vertex_set_flatten(group->vset, &group->n_vertices, &group->positions, &group->texcoords);
-            if(!rv)
-                printf("Flattening failed, problems ahead !!\n");
-            group->vset = vertex_set_free(group->vset);
-            group->bs.center.x += self->bs.center.x;
-            group->bs.center.y += self->bs.center.y;
-            group->bs.center.z += self->bs.center.z;
-        }
-#if 0
-        printf("VGroup #%d bs: %.4f %.4f %.4f %.2f\n",i,
-            group->bs.center.x,
-            group->bs.center.y,
-            group->bs.center.z,
-            group->bs.radius
-        );
-#endif
-        glGenBuffers(NBuffers, group->buffers);
-
-        glBindBuffer(GL_ARRAY_BUFFER, group->buffers[PositionBuffer]);
-        glBufferData(
-            GL_ARRAY_BUFFER,
-            group->n_vertices*sizeof(SGVec3f),
-            group->positions,
-            GL_STATIC_DRAW
-        );
-
-        glBindBuffer(GL_ARRAY_BUFFER, group->buffers[TexCoordBuffer]);
-        glBufferData(
-            GL_ARRAY_BUFFER,
-            group->n_vertices*sizeof(SGVec2f),
-            group->texcoords,
-            GL_STATIC_DRAW
-        );
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, group->buffers[ElementBuffer]);
-        glBufferData(
-            GL_ELEMENT_ARRAY_BUFFER,
-            group->n_indices*sizeof(indice_t),
-            group->indices,
-            GL_STATIC_DRAW
-        );
+    for(size_t i = 0; i < self->n_groups; i++){
+        vgroup_prepare(&(self->groups[i]));
     }
     return self;
 }
@@ -383,6 +414,10 @@ void mesh_render_buffer(Mesh *self, BasicShader *shader, mat4d vp, vec4 frustum[
 
         if(!glm_sphere_sphere(frustrum_bs, gbs)){continue;}
         if(!glm_frustum_cgsphered(frustum, &group->bs)) {continue;}
+
+        /*TODO: static_branch on preparation*/
+        if(!group->prepared)
+            vgroup_prepare(group);
 
         glActiveTexture(GL_TEXTURE0 );
         glBindTexture(GL_TEXTURE_2D, group->texture ? group->texture->id : 0); /*TODO: static_branch on tex loading*/
