@@ -16,13 +16,13 @@
 #include "mesh.h"
 #include "frustum-ext.h"
 
-TerrainViewer *terrain_viewer_new(void)
+TerrainViewer *terrain_viewer_new(float obliqueness)
 {
     TerrainViewer *rv;
 
     rv = calloc(1, sizeof(TerrainViewer));
     if(rv){
-        if(!terrain_viewer_init(rv)){
+        if(!terrain_viewer_init(rv, obliqueness)){
             free(rv);
             return NULL;
         }
@@ -30,7 +30,7 @@ TerrainViewer *terrain_viewer_new(void)
     return rv;
 }
 
-TerrainViewer *terrain_viewer_init(TerrainViewer *self)
+TerrainViewer *terrain_viewer_init(TerrainViewer *self, float obliqueness)
 {
 
     self->plane = plane_new(); /*implicit  0 0 0 yaw pitch roll*/
@@ -55,6 +55,10 @@ TerrainViewer *terrain_viewer_init(TerrainViewer *self)
     glm_perspectived(self->fov_rad, 800.0/600.0, self->near_plane, 10000.0, self->projection);
 
     self->skybox = skybox_new(self->projection);
+    /* Make the horizon higher than the default half screen
+     * https://docs.unity3d.com/Manual/ObliqueFrustum.html
+     */
+    self->projection[2][1] = obliqueness;
 
     return self;
 }

@@ -186,7 +186,7 @@ int main(int argc, char **argv)
     }
 
     TerrainViewer *viewer;
-    viewer = terrain_viewer_new();
+    viewer = terrain_viewer_new(-0.25);
 
 #if 0
     FlightgearConnector *fglink;

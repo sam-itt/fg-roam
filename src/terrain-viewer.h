@@ -29,8 +29,8 @@ typedef struct{
 }TerrainViewer;
 
 
-TerrainViewer *terrain_viewer_new(void);
-TerrainViewer *terrain_viewer_init(TerrainViewer *self);;
+TerrainViewer *terrain_viewer_new(float obliqueness);
+TerrainViewer *terrain_viewer_init(TerrainViewer *self, float obliqueness);
 TerrainViewer *terrain_viewer_dispose(TerrainViewer *self);
 TerrainViewer *terrain_viewer_free(TerrainViewer *self);
 
