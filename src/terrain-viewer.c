@@ -65,11 +65,8 @@ TerrainViewer *terrain_viewer_init(TerrainViewer *self, float obliqueness)
 
 TerrainViewer *terrain_viewer_dispose(TerrainViewer *self)
 {
-    /*Doesn't exists yet*/
-#if 0
     if(self->skybox)
-    skybox_free(self->skybox);
-#endif
+        skybox_free(self->skybox);
     if(self->shader)
         basic_shader_free(self->shader);
     if(self->lflg)

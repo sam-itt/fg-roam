@@ -124,6 +124,25 @@ Skybox *skybox_init(Skybox *self, mat4d projection)
     return self;
 }
 
+Skybox *skybox_dispose(Skybox *self)
+{
+    glDeleteTextures(1, &self->tex_id);
+    glDeleteBuffers(1, &self->vertex_buffer);
+#if 0 /*Currently unused*/
+    glDeleteBuffers(1, &indices_buffer);
+#endif
+    skybox_shader_free(self->shader);
+
+    return self;
+}
+
+Skybox *skybox_free(Skybox *self)
+{
+    skybox_dispose(self);
+    free(self);
+    return NULL;
+}
+
 void skybox_set_projection(Skybox *self, mat4d projection)
 {
     mat4 projf;

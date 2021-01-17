@@ -21,6 +21,9 @@ typedef struct{
 Skybox *skybox_new(mat4d projection);
 Skybox *skybox_init(Skybox *self, mat4d projection);
 
+Skybox *skybox_dispose(Skybox *self);
+Skybox *skybox_free(Skybox *self);
+
 void skybox_set_projection(Skybox *self, mat4d projection);
 void skybox_render(Skybox *self);
 #endif /* SKYBOX_H */
