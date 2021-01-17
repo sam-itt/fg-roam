@@ -120,7 +120,7 @@ static size_t add_bucket(size_t nbuckets, size_t abuckets, SGBucket **buckets, S
  */
 SGBucket **tile_manager_get_tiles(TileManager *self, GeoLocation *location, float vis)
 {
-    static SGBucket *rv[5];
+    static SGBucket *rv[6];
     SGBucket *tmp;
     bool found;
     GeoLocation nbox[2];
@@ -129,6 +129,9 @@ SGBucket **tile_manager_get_tiles(TileManager *self, GeoLocation *location, floa
     geo_location_bounding_coordinates(location, vis, nbox);
 
     nbuckets = 0;
+    //center
+    tmp = tile_manager_get_tile(self, location->latitude, location->longitude);
+    nbuckets = add_bucket(nbuckets, 4, rv, tmp);
 
     //up left
     tmp = tile_manager_get_tile(self, nbox[1].latitude, nbox[0].longitude); //lat lon, Y X
