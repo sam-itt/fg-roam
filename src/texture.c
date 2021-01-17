@@ -58,6 +58,11 @@ static char *names[] = {
     "pc_heli","pc_tiedown","grass_rwy"
 };
 
+void texture_store_shutdown(void)
+{
+    for(int i = 0; i < _ntextures; i++)
+        texture_free(_store[i]);
+}
 
 Texture *texture_new(const char *filename, const char *name)
 {
@@ -83,6 +88,7 @@ void texture_free(Texture *self)
         free(self->filename);
     if(self->name)
         free(self->name);
+    glDeleteTextures(1, &self->id);
     free(self);
 }
 
