@@ -279,7 +279,7 @@ int main(int argc, char **argv)
             dtms -= 60000 * m;
             s = dtms / 1000;
 
-            printf("%02d:%02d:%02d Current FPS: %03d\r",h,m,s, (1000*nframes)/elapsed);
+            printf("%02d:%02d:%02d Current FPS: %05d\r",h,m,s, (1000*nframes)/elapsed);
             fflush(stdout);
             nframes = 0;
             acc = 0;
