@@ -1,5 +1,7 @@
 #ifndef BUCKET_H
 #define BUCKET_H
+#include <SDL2/SDL.h>
+
 #include "mesh.h"
 
 #ifndef TERRAIN_ROOT
@@ -26,7 +28,7 @@ typedef struct{
     unsigned char y;          // y subdivision (0 to 7)
 
     Mesh *mesh;
-    bool active;
+    Uint32 last_used;
 }SGBucket;
 
 #define sg_bucket_equals(a,b) (((a)->lon == (b)->lon) && ((a)->lat == (b)->lat) && ((a)->x == (b)->x) && ((a)->y == (b)->y))

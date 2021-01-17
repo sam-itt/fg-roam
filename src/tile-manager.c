@@ -39,23 +39,31 @@ void tile_manager_shutdown(void)
        tile_manager_free(instance);
        instance = NULL;
     }
-
 }
 
 bool tile_manager_add_tile(TileManager *self, SGBucket *bucket)
 {
-     for(int i = 0; i < MAX_BUCKETS; i++){
-        if(!self->buckets[i] || self->buckets[i]->active == false){
-            if(self->buckets[i]){
-                sg_bucket_free(self->buckets[i]);
+    size_t add_idx;
+
+    if(self->nbuckets == MAX_BUCKETS){
+        /* If we get here, we already have all buckets slots used:
+         * remove the older
+         */
+        Uint32 oldest_stamp = SDL_GetTicks(); /*start at now() and look for the smallest value*/
+        for(int i = 0; i < self->nbuckets; i++){
+            if(oldest_stamp > self->buckets[i]->last_used){
+                oldest_stamp = self->buckets[i]->last_used;
+                add_idx = i;
             }
-            self->buckets[i] = bucket;
-            //printf("Added tile %p as index %d: %s\n", bucket, i, sg_bucket_getfilename(bucket));
-            bucket->active = true;
-            return true;
         }
-     }
-     return false;
+        sg_bucket_free(self->buckets[add_idx]);
+    }else{
+        add_idx = self->nbuckets;
+        self->nbuckets++;
+    }
+
+    self->buckets[add_idx] = bucket;
+    return true;
 }
 
 SGBucket *tile_manager_add_tile_copy(TileManager *self, SGBucket *bucket)
@@ -70,40 +78,33 @@ SGBucket *tile_manager_add_tile_copy(TileManager *self, SGBucket *bucket)
     return copy;
 }
 
-
-SGBucket *tile_manager_get_tile_t(TileManager *self, SGBucket *t)
+SGBucket *tile_manager_get_tile(TileManager *self, double lat, double lon)
 {
     SGBucket *rv;
-    bool found;
+    SGBucket tmp;
 
-    for(int i = 0; i < MAX_BUCKETS; i++){
+    sg_bucket_set(&tmp, lon, lat);
+    /*TODO: Use a hash-like structure?*/
+    for(int i = 0; i < self->nbuckets; i++){
         if(!self->buckets[i]) continue;
-        if(sg_bucket_equals(t, self->buckets[i])){
+        if(sg_bucket_equals(&tmp, self->buckets[i])){
+            self->buckets[i]->last_used = SDL_GetTicks();
             return self->buckets[i];
         }
     }
 
-    rv = tile_manager_add_tile_copy(self, t);
+    rv = tile_manager_add_tile_copy(self, &tmp);
     if(!rv){
         printf("Couldn't add tile, bailing out\n");
         exit(EXIT_FAILURE);
     }
+    rv->last_used = SDL_GetTicks();
     return rv;
-}
-
-SGBucket *tile_manager_get_tile(TileManager *self, double lat, double lon)
-{
-    SGBucket tmp;
-
-    sg_bucket_set(&tmp, lon, lat);
-
-    return tile_manager_get_tile_t(self, &tmp);
 }
 
 /*return next index*/
 static size_t add_bucket(size_t nbuckets, size_t abuckets, SGBucket **buckets, SGBucket *candidate)
 {
-    candidate->active = true;
     for(int i = 0; i < nbuckets; i++){
         if(buckets[i] == candidate)
             return nbuckets;
@@ -125,16 +126,13 @@ SGBucket **tile_manager_get_tiles(TileManager *self, GeoLocation *location, floa
     GeoLocation nbox[2];
     int nbuckets;
 
-     for(int i = 0; i < MAX_BUCKETS; i++){
-        if(!self->buckets[i]) continue;
-        self->buckets[i]->active = false;
-     }
-
     geo_location_bounding_coordinates(location, vis, nbox);
+
+    nbuckets = 0;
 
     //up left
     tmp = tile_manager_get_tile(self, nbox[1].latitude, nbox[0].longitude); //lat lon, Y X
-    nbuckets = add_bucket(0, 4, rv, tmp);
+    nbuckets = add_bucket(nbuckets, 4, rv, tmp);
     //buckets[0]->active = true;
     //down left
     tmp = tile_manager_get_tile(self, nbox[0].latitude, nbox[0].longitude);
@@ -148,6 +146,21 @@ SGBucket **tile_manager_get_tiles(TileManager *self, GeoLocation *location, floa
     tmp = tile_manager_get_tile(self, nbox[1].latitude, nbox[1].longitude);
     nbuckets = add_bucket(nbuckets, 4, rv, tmp);
     rv[nbuckets] = NULL;
+
+/*    printf("Bounding locations for region %f m around lat: %f, lon: %f:\n"*/
+            /*"\tTile 0: lat:%d lon:%d x:%d y:%d\n"*/
+            /*"\tTile 1: lat:%d lon:%d x:%d y:%d\n"*/
+            /*"\tTile 2: lat:%d lon:%d x:%d y:%d\n"*/
+            /*"\tTile 3: lat:%d lon:%d x:%d y:%d\n",*/
+        /*vis,*/
+        /*location->latitude, location->longitude,*/
+        /*rv[0]->lat, rv[0]->lon, rv[0]->x, rv[0]->y,*/
+        /*rv[1]->lat, rv[1]->lon, rv[1]->x, rv[1]->y,*/
+        /*rv[2]->lat, rv[2]->lon, rv[2]->x, rv[2]->y,*/
+        /*rv[3]->lat, rv[3]->lon, rv[3]->x, rv[3]->y*/
+    /*);*/
+//    fflush(stdout);
+
 
     return rv;
 }

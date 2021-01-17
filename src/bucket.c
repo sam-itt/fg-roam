@@ -305,7 +305,10 @@ Mesh *sg_bucket_get_mesh(SGBucket *self)
 //    printf("Getting mesh for tile %p\n", self);
     if(!self->mesh){
         snprintf(buffer, 256, TERRAIN_ROOT"/%s", sg_bucket_getfilename(self));
-        printf("Bucket %p: Will load next bucket: path=%s\n",self, buffer);
+        printf("Bucket %p lat:%d lon:%d x:%d y:%d: Will load next bucket: path=%s\n",
+            self, self->lat, self->lon, self->x, self->y,
+            buffer
+        );
         start = SDL_GetTicks();
         self->mesh = mesh_new_from_file(buffer);
         end = SDL_GetTicks();
