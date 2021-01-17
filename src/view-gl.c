@@ -289,6 +289,7 @@ int main(int argc, char **argv)
     printf("Average terrain_viewer_frame duration: %f ms (%d calls)\n",(tframe_acc*1.0)/ntframes,ntframes);
     terrain_viewer_free(viewer);
     texture_store_shutdown();
+    fg_tape_free(tape);
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
