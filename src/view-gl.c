@@ -1,15 +1,26 @@
-#include "SDL_timer.h"
 #define _GNU_SOURCE 1
+#if 0
 #define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
 #include <SDL2/SDL.h>
+#if 0
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glext.h>
+#elif 0
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#endif
+
+#define GL_GLEXT_PROTOTYPES 1
+#include <SDL2/SDL_opengles2.h>
+
+
 
 #include <cglm/cglm.h>
 
@@ -157,7 +168,7 @@ int main(int argc, char **argv)
     }
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);

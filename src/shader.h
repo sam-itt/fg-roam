@@ -2,7 +2,15 @@
 #define SHADER_H
 
 #include <stdbool.h>
+#if 0
 #include <GL/gl.h>
+#elif 0
+#include <GLES2/gl2.h>
+#endif
+
+#define GL_GLEXT_PROTOTYPES 1
+#include <SDL2/SDL_opengles2.h>
+
 
 #ifndef SHADER_ROOT
 #define SHADER_ROOT "."

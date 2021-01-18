@@ -1,6 +1,10 @@
 #ifndef INDICE_H
 #define INDICE_H
-#include <GL/glut.h>
+#if 0
+#include <GL/gl.h>
+#else
+#include <GLES2/gl2.h>
+#endif
 
 #define USE_INT_INDICES 0
 

@@ -1,7 +1,12 @@
 #ifndef SKYBOX_H
 #define SKYBOX_H
 
+#include <stdbool.h>
+#if 0
 #include <GL/gl.h>
+#else
+#include <GLES2/gl2.h>
+#endif
 
 #include "skybox-shader.h"
 #include "cglm/types.h"

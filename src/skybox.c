@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
-#define GL_VERSION_2_1
-#define GL_GLEXT_PROTOTYPES
+//#define GL_VERSION_2_1
+//#define GL_GLEXT_PROTOTYPES
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,8 +10,17 @@
 #include <SDL2/SDL_image.h>
 
 #include <cglm/cglm.h>
+#if 0
 #include <GL/gl.h>
 #include <GL/glext.h>
+#elif 0
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#endif
+
+#define GL_GLEXT_PROTOTYPES 1
+#include <SDL2/SDL_opengles2.h>
+
 
 #include "skybox.h"
 
@@ -211,14 +220,23 @@ bool skybox_load_textures(Skybox *self)
             if(img->format->Rmask == 0xff)
                 format = GL_RGB;
             else
+#if 0
                 format = GL_BGR;
+#else
+                goto bail;
+#endif
         }else if(img->format->BytesPerPixel == 4){
             internal_format = GL_RGBA;
             if(img->format->Rmask == 0xff)
                 format = GL_RGBA;
             else
+#if 0
                 format = GL_BGRA;
+#else
+                goto bail;
+#endif
         }else{
+bail:
             printf("Error while loading %s: Unknown image format, %d Bytes per pixel\n",faces[i],img->format->BytesPerPixel);
             exit(0);
             SDL_FreeSurface(img);

@@ -1,12 +1,21 @@
-#define GL_VERSION_2_1
-#define GL_GLEXT_PROTOTYPES
+//#define GL_VERSION_2_1
+//#define GL_GLEXT_PROTOTYPES
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 
+#if 0
 #include <GL/gl.h>
 #include <GL/glext.h>
+#elif 0
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#endif
+
+#define GL_GLEXT_PROTOTYPES 1
+#include <SDL2/SDL_opengles2.h>
+
 
 #include "shader.h"
 
@@ -243,6 +252,13 @@ static bool shader_load(Shader *self)
     return true;
 }
 
+static const char *pretty_shader_type(GLenum type)
+{
+    if(type == GL_VERTEX_SHADER) return "GL_VERTEX_SHADER";
+    if(type == GL_FRAGMENT_SHADER) return "GL_FRAGMENT_SHADER";
+    return "Unknown";
+}
+
 /*
  * @brief Creates a shader from the content of @p filename.
  *
@@ -263,7 +279,8 @@ static bool shader_compile_file(GLuint *shader, GLenum type, const char *filenam
 
     *shader = glCreateShader(type);
     if(!(*shader)){
-        printf("glCreateShader failed for type %d\n",type);
+        printf("glCreateShader failed for type %s(%d)\n",pretty_shader_type(type), type);
+        printf("glError was: %d\n",glGetError());
         return false;
     }
 

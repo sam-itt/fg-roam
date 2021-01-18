@@ -1,17 +1,22 @@
-#include "frustum-ext.h"
-#include "sg-sphere.h"
 #define _GNU_SOURCE
-#define GL_VERSION_2_1
-#define GL_GLEXT_PROTOTYPES
+//#define GL_VERSION_2_1
+//#define GL_GLEXT_PROTOTYPES
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 
+#if 0
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glext.h>
+#elif 0
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#endif
+#define GL_GLEXT_PROTOTYPES 1
+#include <SDL2/SDL_opengles2.h>
 
 #include "mesh.h"
 #include "btg-io.h"
@@ -20,6 +25,8 @@
 
 #include "geodesy.h"
 #include "cglm/mat4d.h"
+#include "frustum-ext.h"
+#include "sg-sphere.h"
 
 
 /**

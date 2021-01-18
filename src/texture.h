@@ -1,7 +1,11 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 #include <stdbool.h>
+#if 0
 #include <GL/gl.h>
+#else
+#include <GLES2/gl2.h>
+#endif
 
 typedef struct{
     GLuint id;
