@@ -1,4 +1,10 @@
+#ifdef GL_ES
+#version 100
+precision mediump float;
+precision mediump int;
+#else
 #version 120
+#endif
 
 varying vec3 textureCoords;
 

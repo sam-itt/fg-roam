@@ -9,7 +9,7 @@ CFLAGS=-g3 -O0 `pkg-config glib-2.0 sdl2 SDL2_image --cflags` \
 	   -I$(TOP_SRCDIR)/lib/cglm/include/ \
 	   -I$(FG_IO)/flightgear-connector \
 	   -I$(FG_IO)/fg-tape
-LDFLAGS=-lz -lm `pkg-config glib-2.0 sdl2 SDL2_image --libs` -lGLESv2
+LDFLAGS=-lz -lm `pkg-config glib-2.0 sdl2 SDL2_image --libs` -lGL
 EXEC=view-gl
 SRC= $(wildcard $(SRCDIR)/*.c)
 SRC+= $(filter-out $(FG_IO)/flightgear-connector/fg-connector-test.c, $(wildcard $(FG_IO)/flightgear-connector/*.c))

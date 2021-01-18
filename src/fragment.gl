@@ -1,11 +1,9 @@
-/*
-adapted from http://www.lighthouse3d.com/opengl/glsl/index.php/index.php?textureComb
-*/
-#version 120
-
 #ifdef GL_ES
+#version 100
 precision mediump float;
 precision mediump int;
+#else
+#version 120
 #endif
 
 uniform sampler2D tex0;
