@@ -341,7 +341,7 @@ static void shader_show_link_error(Shader *self)
 
     glGetProgramiv(self->program_id, GL_INFO_LOG_LENGTH, &msg_size);
     msg = calloc(msg_size + 1, sizeof(char));
-    glGetShaderInfoLog(self->program_id, msg_size, NULL, msg);
+    glGetProgramInfoLog(self->program_id, msg_size, NULL, msg);
 
     printf("Shader program %d compile error: %s\n", self->program_id, msg);
 
