@@ -1,13 +1,11 @@
 #define _GNU_SOURCE 1
-#define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glext.h>
-
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <cglm/cglm.h>
+#include <SDL2/SDL_opengl.h>
+#include <SDL2/SDL_opengl_glext.h>
 
 #include "terrain-viewer.h"
 

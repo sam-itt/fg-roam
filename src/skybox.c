@@ -1,17 +1,15 @@
 #define _GNU_SOURCE
-#define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_opengl.h>
+#include <SDL2/SDL_opengl_glext.h>
 
 #include <cglm/cglm.h>
-#include <GL/gl.h>
-#include <GL/glext.h>
 
 #include "skybox.h"
 

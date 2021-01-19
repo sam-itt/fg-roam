@@ -1,6 +1,6 @@
 #ifndef INDICE_H
 #define INDICE_H
-#include <GL/glut.h>
+#include <SDL2/SDL_opengl.h>
 
 #define USE_INT_INDICES 0
 

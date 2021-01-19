@@ -1,14 +1,9 @@
-#define GL_VERSION_2_1
-#define GL_GLEXT_PROTOTYPES
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
-
-#include <GL/gl.h>
-#include <GL/glext.h>
 
 #include "texture.h"
 

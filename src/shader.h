@@ -2,7 +2,7 @@
 #define SHADER_H
 
 #include <stdbool.h>
-#include <GL/gl.h>
+#include <SDL2/SDL_opengl.h>
 
 #ifndef SHADER_ROOT
 #define SHADER_ROOT "."

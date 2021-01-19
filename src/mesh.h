@@ -1,7 +1,6 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include <GL/glut.h>
 #include <cglm/cglm.h>
 
 #include "texture.h"

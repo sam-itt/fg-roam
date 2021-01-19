@@ -1,7 +1,4 @@
-#include "frustum-ext.h"
-#include "sg-sphere.h"
 #define _GNU_SOURCE
-#define GL_VERSION_2_1
 #define GL_GLEXT_PROTOTYPES
 
 #include <stdio.h>
@@ -9,9 +6,8 @@
 #include <string.h>
 #include <stdint.h>
 
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glext.h>
+#include <SDL2/SDL_opengl.h>
+#include <SDL2/SDL_opengl_glext.h>
 
 #include "mesh.h"
 #include "btg-io.h"
@@ -20,6 +16,8 @@
 
 #include "geodesy.h"
 #include "cglm/mat4d.h"
+#include "frustum-ext.h"
+#include "sg-sphere.h"
 
 
 /**

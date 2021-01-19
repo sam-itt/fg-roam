@@ -2,8 +2,9 @@
 #define PLANE_H
 
 #include <stdbool.h>
-#include <GL/glut.h>
+
 #include <cglm/cglm.h>
+#include <SDL2/SDL_opengl.h>
 
 #include "geo-location.h"
 
