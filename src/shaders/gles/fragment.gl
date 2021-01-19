@@ -1,0 +1,16 @@
+/*
+adapted from http://www.lighthouse3d.com/opengl/glsl/index.php/index.php?textureComb
+*/
+#version 100
+precision mediump float;
+precision mediump int;
+
+uniform sampler2D tex0;
+
+varying vec2 v_texcoord;
+
+void main()
+{
+    vec4 color = texture2D(tex0, v_texcoord);
+    gl_FragColor = color;
+}

@@ -6,8 +6,13 @@
 #include <stdbool.h>
 
 #include <SDL2/SDL.h>
+#if USE_GLES
+#include <SDL2/SDL_opengles2.h>
+#include <SDL_opengles2_gl2ext.h>
+#else
 #include <SDL2/SDL_opengl.h>
 #include <SDL2/SDL_opengl_glext.h>
+#endif
 
 #include <cglm/cglm.h>
 
@@ -153,10 +158,14 @@ int main(int argc, char **argv)
         SDL_Quit();
         exit(EXIT_FAILURE);
     }
-
+#if USE_GLES
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-
+#endif
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 

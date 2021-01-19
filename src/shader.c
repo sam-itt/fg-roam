@@ -4,8 +4,14 @@
 #include <string.h>
 #include <stdbool.h>
 
+#if USE_GLES
+#include <SDL2/SDL_opengles2.h>
+#include <SDL_opengles2_gl2ext.h>
+#else
 #include <SDL2/SDL_opengl.h>
 #include <SDL2/SDL_opengl_glext.h>
+#endif
+
 
 #include "shader.h"
 

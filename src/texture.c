@@ -102,20 +102,28 @@ bool texture_load(Texture *self)
     glGenTextures(1, &(self->id));
     glBindTexture(GL_TEXTURE_2D, self->id);
 
-
     if(img->format->BytesPerPixel == 3){
         internal_format = GL_RGB;
         if(img->format->Rmask == 0xff)
             format = GL_RGB;
         else
+#if USE_GLES
+            goto bail;
+#else
             format = GL_BGR;
+#endif
     }else if(img->format->BytesPerPixel == 4){
         internal_format = GL_RGBA;
         if(img->format->Rmask == 0xff)
             format = GL_RGBA;
         else
+#if USE_GLES
+            goto bail;
+#else
             format = GL_BGRA;
+#endif
     }else{
+bail:
         printf("Unknown image format: %d Bytes per pixel\n",img->format->BytesPerPixel);
         SDL_FreeSurface(img);
         return false;

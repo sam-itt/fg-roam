@@ -6,8 +6,13 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#if USE_GLES
+#include <SDL2/SDL_opengles2.h>
+#include <SDL_opengles2_gl2ext.h>
+#else
 #include <SDL2/SDL_opengl.h>
 #include <SDL2/SDL_opengl_glext.h>
+#endif
 
 #include <cglm/cglm.h>
 
@@ -209,14 +214,23 @@ bool skybox_load_textures(Skybox *self)
             if(img->format->Rmask == 0xff)
                 format = GL_RGB;
             else
+#if USE_GLES
+                goto bail;
+#else
                 format = GL_BGR;
+#endif
         }else if(img->format->BytesPerPixel == 4){
             internal_format = GL_RGBA;
             if(img->format->Rmask == 0xff)
                 format = GL_RGBA;
             else
+#if USE_GLES
+                goto bail;
+#else
                 format = GL_BGRA;
+#endif
         }else{
+bail:
             printf("Error while loading %s: Unknown image format, %d Bytes per pixel\n",faces[i],img->format->BytesPerPixel);
             exit(0);
             SDL_FreeSurface(img);

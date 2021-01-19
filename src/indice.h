@@ -1,6 +1,10 @@
 #ifndef INDICE_H
 #define INDICE_H
+#if USE_GLES
+#include <SDL2/SDL_opengles2.h>
+#else
 #include <SDL2/SDL_opengl.h>
+#endif
 
 #define USE_INT_INDICES 0
 

@@ -4,7 +4,11 @@
 #include <stdbool.h>
 
 #include <cglm/cglm.h>
+#if USE_GLES
+#include <SDL2/SDL_opengles2.h>
+#else
 #include <SDL2/SDL_opengl.h>
+#endif
 
 #include "geo-location.h"
 
