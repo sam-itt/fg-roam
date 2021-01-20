@@ -10,6 +10,7 @@ CFLAGS=-g3 -O0 `pkg-config glib-2.0 sdl2 SDL2_image --cflags` \
 	   -I$(FG_IO)/flightgear-connector \
 	   -I$(FG_IO)/fg-tape \
 	   -DUSE_GLES=0 \
+	   -DENABLE_TRIANGLE_DEBUG=0 \
 	   -DTERRAIN_ROOT=\"/home/samuel/dev/Terrain\" \
 	   -DTEX_ROOT=\"/home/samuel/dev/textures\"
 LDFLAGS=-lz -lm `pkg-config glib-2.0 sdl2 SDL2_image --libs` -lGL

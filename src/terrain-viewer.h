@@ -8,6 +8,10 @@
 #include "plane.h"
 #include "skybox.h"
 
+#if ENABLE_TRIANGLE_DEBUG
+#include "debug-triangle.h"
+#endif
+
 typedef struct{
     BasicShader *shader;
     Plane *plane; /*This is more a camera*/
@@ -26,6 +30,10 @@ typedef struct{
     /*TODO: Look into using doubles*/
     vec4 fplanes[6]; /*frustrum planes*/
     vec4 frustrum_bs; /*frustrum bounding sphere*/
+
+#if ENABLE_TRIANGLE_DEBUG
+    DebugTriangle *triangle;
+#endif
 }TerrainViewer;
 
 

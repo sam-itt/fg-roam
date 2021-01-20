@@ -19,6 +19,10 @@
 #include "mesh.h"
 #include "frustum-ext.h"
 
+#if ENABLE_TRIANGLE_DEBUG
+#include "debug-triangle.h"
+#endif
+
 TerrainViewer *terrain_viewer_new(float obliqueness)
 {
     TerrainViewer *rv;
@@ -63,6 +67,12 @@ TerrainViewer *terrain_viewer_init(TerrainViewer *self, float obliqueness)
      */
     self->projection[2][1] = obliqueness;
 
+#if ENABLE_TRIANGLE_DEBUG
+    self->triangle = debug_triangle_new();
+    if(!self->triangle)
+        return NULL;
+#endif
+
     return self;
 }
 
@@ -76,6 +86,10 @@ TerrainViewer *terrain_viewer_dispose(TerrainViewer *self)
         mesh_free(self->lflg);
     if(self->plane)
         plane_free(self->plane);
+#if ENABLE_TRIANGLE_DEBUG
+    if(!self->triangle)
+        debug_triangle_free(self->triangle);
+#endif
 
     tile_manager_shutdown();
     return NULL;
@@ -101,6 +115,11 @@ void terrain_viewer_frame(TerrainViewer *self)
 {
     SGBucket **buckets;
     Mesh *m;
+
+#if ENABLE_TRIANGLE_DEBUG
+    debug_triangle_render(self->triangle);
+    return;
+#endif
 
     if(self->plane->dirty){
         plane_view(self->plane);
