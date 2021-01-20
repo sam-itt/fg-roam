@@ -8,9 +8,12 @@
 #include "plane.h"
 #include "skybox.h"
 
-#if ENABLE_TRIANGLE_DEBUG
+#if ENABLE_DEBUG_TRIANGLE
 #include "debug-triangle.h"
+#elif ENABLE_DEBUG_CUBE
+#include "debug-cube.h"
 #endif
+
 
 typedef struct{
     BasicShader *shader;
@@ -31,8 +34,10 @@ typedef struct{
     vec4 fplanes[6]; /*frustrum planes*/
     vec4 frustrum_bs; /*frustrum bounding sphere*/
 
-#if ENABLE_TRIANGLE_DEBUG
+#if ENABLE_DEBUG_TRIANGLE
     DebugTriangle *triangle;
+#elif ENABLE_DEBUG_CUBE
+    DebugCube *cube;
 #endif
 }TerrainViewer;
 

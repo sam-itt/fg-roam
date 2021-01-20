@@ -1,3 +1,4 @@
+#include "debug-cube.h"
 #define _GNU_SOURCE 1
 #define GL_GLEXT_PROTOTYPES
 #include <stdio.h>
@@ -19,7 +20,7 @@
 #include "mesh.h"
 #include "frustum-ext.h"
 
-#if ENABLE_TRIANGLE_DEBUG
+#if ENABLE_DEBUG_TRIANGLE
 #include "debug-triangle.h"
 #endif
 
@@ -67,9 +68,13 @@ TerrainViewer *terrain_viewer_init(TerrainViewer *self, float obliqueness)
      */
     self->projection[2][1] = obliqueness;
 
-#if ENABLE_TRIANGLE_DEBUG
+#if ENABLE_DEBUG_TRIANGLE
     self->triangle = debug_triangle_new();
     if(!self->triangle)
+        return NULL;
+#elif ENABLE_DEBUG_CUBE
+    self->cube = debug_cube_new();
+    if(!self->cube)
         return NULL;
 #endif
 
@@ -86,11 +91,13 @@ TerrainViewer *terrain_viewer_dispose(TerrainViewer *self)
         mesh_free(self->lflg);
     if(self->plane)
         plane_free(self->plane);
-#if ENABLE_TRIANGLE_DEBUG
+#if ENABLE_DEBUG_TRIANGLE
     if(!self->triangle)
         debug_triangle_free(self->triangle);
+#elif ENABLE_DEBUG_CUBE
+    if(!self->cube)
+        debug_cube_free(self->cube);
 #endif
-
     tile_manager_shutdown();
     return NULL;
 }
@@ -116,8 +123,13 @@ void terrain_viewer_frame(TerrainViewer *self)
     SGBucket **buckets;
     Mesh *m;
 
-#if ENABLE_TRIANGLE_DEBUG
+#if ENABLE_DEBUG_TRIANGLE
     debug_triangle_render(self->triangle);
+    return;
+#elif ENABLE_DEBUG_CUBE
+    glEnable(GL_DEPTH_TEST);   // skybox should be drawn behind anything else
+    glDepthFunc(GL_LESS);
+    debug_cube_render(self->cube);
     return;
 #endif
 
