@@ -1,4 +1,3 @@
-#include "debug-cube.h"
 #define _GNU_SOURCE 1
 #define GL_GLEXT_PROTOTYPES
 #include <stdio.h>
@@ -22,6 +21,8 @@
 
 #if ENABLE_DEBUG_TRIANGLE
 #include "debug-triangle.h"
+#elif ENABLE_DEBUG_CUBE
+#include "debug-cube.h"
 #endif
 
 TerrainViewer *terrain_viewer_new(float obliqueness)

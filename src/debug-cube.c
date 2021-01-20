@@ -10,7 +10,6 @@
 #include <SDL2/SDL_opengl_glext.h>
 #endif
 
-
 #include "debug-cube-shader.h"
 #include "debug-cube.h"
 
@@ -139,6 +138,8 @@ void *debug_cube_free(DebugCube *self)
 
 void debug_cube_render(DebugCube *self)
 {
+
+    glDisable(GL_DEPTH_TEST);   // skybox should be drawn behind anything else
     glUseProgram(SHADER(self->shader)->program_id);
 
     glUniformMatrix4fv(self->shader->mvp, 1, GL_FALSE, self->mvp[0]);
@@ -148,28 +149,29 @@ void debug_cube_render(DebugCube *self)
     glEnableVertexAttribArray(self->shader->position);
     glBindBuffer(GL_ARRAY_BUFFER, self->vbo);
     glVertexAttribPointer(
-       0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+       self->shader->position,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
        3,                  // size
        GL_FLOAT,           // type
        GL_FALSE,           // normalized?
-       0,                  // stride
+       3*sizeof(float),                  // stride
        (void*)0            // array buffer offset
     );
 
     glEnableVertexAttribArray(self->shader->color);
     glBindBuffer(GL_ARRAY_BUFFER, self->colors);
     glVertexAttribPointer(
-        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+        self->shader->color,                                // attribute. No particular reason for 1, but must match the layout in the shader.
         3,                                // size
         GL_FLOAT,                         // type
         GL_FALSE,                         // normalized?
-        0,                                // stride
+        3*sizeof(float),                                // stride
         (void*)0                          // array buffer offset
     );
 
     // Draw the triangle !
     glDrawArrays(GL_TRIANGLES, 0, 12*3); // 12*3 indices starting at 0 -> 12 triangles -> 6 squares
     glDisableVertexAttribArray(self->vbo);
+    glDisableVertexAttribArray(self->colors);
 
     glUseProgram(0);
 }
