@@ -138,12 +138,21 @@ void *debug_cube_free(DebugCube *self)
 
 void debug_cube_render(DebugCube *self)
 {
+    mat4 tmp;
+    mat4 rot = GLM_MAT4_IDENTITY_INIT;
+    static float deg = 0;
 
     glDisable(GL_DEPTH_TEST);   // skybox should be drawn behind anything else
     glUseProgram(SHADER(self->shader)->program_id);
 
-    glUniformMatrix4fv(self->shader->mvp, 1, GL_FALSE, self->mvp[0]);
+    glm_rotate_x(rot, glm_rad(deg), rot);
+    deg += 1.0;
+    if(deg >= 360)
+    deg = 0;
+    glm_mat4_mul(self->mvp, rot, tmp);
+    glUniformMatrix4fv(self->shader->mvp, 1, GL_FALSE, tmp[0]);
 
+//    glUniformMatrix4fv(self->shader->mvp, 1, GL_FALSE, self->mvp[0]);
 
     // 1rst attribute buffer : vertices
     glEnableVertexAttribArray(self->shader->position);
