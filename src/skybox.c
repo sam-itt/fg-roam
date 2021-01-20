@@ -172,7 +172,7 @@ void skybox_render(Skybox *self)
     glEnableVertexAttribArray(self->shader->position);
     glBindBuffer(GL_ARRAY_BUFFER, self->vertex_buffer);
     glVertexAttribPointer(
-        0,
+        self->shader->position,
         3,
         GL_FLOAT,
         GL_FALSE,
