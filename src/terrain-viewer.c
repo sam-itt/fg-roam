@@ -46,10 +46,6 @@ TerrainViewer *terrain_viewer_init(TerrainViewer *self, float obliqueness)
     if(!self->plane)
         return NULL;
 
-    self->lflg = mesh_new_from_file(TERRAIN_ROOT"/e000n40/e005n45/LFLG.btg.gz");
-    if(!self->lflg)
-        return NULL;
-
     self->shader = basic_shader_new();
     if(!self->shader){
         printf("Couldn't create mandatory BasicShader, bailing out\n");
@@ -88,8 +84,6 @@ TerrainViewer *terrain_viewer_dispose(TerrainViewer *self)
         skybox_free(self->skybox);
     if(self->shader)
         basic_shader_free(self->shader);
-    if(self->lflg)
-        mesh_free(self->lflg);
     if(self->plane)
         plane_free(self->plane);
 #if ENABLE_DEBUG_TRIANGLE
@@ -122,7 +116,6 @@ void terrain_viewer_update_plane(TerrainViewer *self, double lat, double lon, do
 void terrain_viewer_frame(TerrainViewer *self)
 {
     SGBucket **buckets;
-    Mesh *m;
 
 #if ENABLE_DEBUG_TRIANGLE
     debug_triangle_render(self->triangle);
@@ -166,13 +159,12 @@ void terrain_viewer_frame(TerrainViewer *self)
     buckets = tile_manager_get_tiles(tile_manager_get_instance(), &(self->plane->geopos), 10000); /*10 km*/
     glUseProgram(SHADER(self->shader)->program_id);
     for(int i = 0; buckets[i] != NULL; i++){
-        m = sg_bucket_get_mesh(buckets[i]);
-        if(m){
-            mesh_render_buffer(m, self->shader, self->projection_view, self->fplanes, self->frustrum_bs);
+        Mesh *iter;
+        for(iter = sg_bucket_get_mesh(buckets[i]); iter != NULL; iter = iter->next){
+            mesh_render_buffer(iter, self->shader, self->projection_view, self->fplanes, self->frustrum_bs);
         }
+
     }
-    if(self->lflg)
-        mesh_render_buffer(self->lflg, self->shader, self->projection_view, self->fplanes, self->frustrum_bs);
     glUseProgram(0);
 
     skybox_render(self->skybox);

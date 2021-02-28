@@ -54,6 +54,8 @@ typedef struct _Mesh{
     /*In world coordinates, i.e already transformed
      * during prepare stage*/
     SGSphered bs;
+
+    struct _Mesh *next;
 }Mesh;
 
 VGroup *vgroup_init(VGroup *self, const char *material, size_t n_triangles);

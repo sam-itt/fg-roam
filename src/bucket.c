@@ -182,7 +182,7 @@ const char *sg_bucket_getfilename(SGBucket *self)
 {
     static char rv[256];
 
-    snprintf(rv, 256, "%s/%s.btg", sg_bucket_gen_base_path(self), sg_bucket_gen_index_str(self));
+    snprintf(rv, 256, "%s/%s.stg", sg_bucket_gen_base_path(self), sg_bucket_gen_index_str(self));
 
     return rv;
 }

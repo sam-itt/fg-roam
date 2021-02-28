@@ -24,6 +24,7 @@
 #include "frustum-ext.h"
 #include "sg-sphere.h"
 
+#include "stg-object.h"
 
 /**
  * @brief Inits a VGroup to make it able to hold as much as @p n_triangles
@@ -295,8 +296,17 @@ Mesh *mesh_new_empty(void)
     return rv;
 }
 
+void mesh_add_accessory(Mesh *self, Mesh *accessory)
+{
+    Mesh *iter;
+
+    for(iter = self; iter->next != NULL; iter = iter->next);
+
+    iter->next = accessory;
+}
+
 /**
- * Creates and prepares a new mesh from a BTG file
+ * Creates and prepares a new mesh from a STG file
  *
  * @param filename The filename to read from
  * @return a newly created and prepared Mesh
@@ -304,14 +314,48 @@ Mesh *mesh_new_empty(void)
 Mesh *mesh_new_from_file(const char *filename)
 {
     Mesh *rv;
-    rv = mesh_new_from_btg(filename);
+    StgObject stg;
+    char *obj_fname;
+    size_t n;
+    bool found;
+
+    if(!stg_object_init(&stg, filename))
+        return NULL;
+
+    obj_fname = NULL;
+    fseek(stg.fp,  0L, SEEK_SET);
+    found = stg_object_get_value(&stg, "OBJECT_BASE", true, &obj_fname, &n);
+    if(!found) //stg file has no base object, can't do nothing
+        goto bail;
+
+    rv = mesh_new_from_btg(obj_fname);
+    if(!rv)
+        goto bail;
     for(size_t i = 0; i < rv->n_groups; i++){
         vgroup_finish(&(rv->groups[i]), &rv->bs);
     }
-//    if(rv)
-//        mesh_prepare(rv);
+
+    /*Load tile accessories e.g airports*/
+    fseek(stg.fp,  0L, SEEK_SET);
+    while((found = stg_object_get_value(&stg, "OBJECT", true, &obj_fname, &n))){
+        Mesh *acc = mesh_new_from_btg(obj_fname);
+        if(!acc){
+            printf("%s loading failed, skipping\n",obj_fname);
+            continue;
+        }
+        for(size_t i = 0; i < acc->n_groups; i++){
+            vgroup_finish(&(acc->groups[i]), &acc->bs);
+        }
+        mesh_add_accessory(rv, acc);
+    }
+
+bail:
+    if(obj_fname)
+        free(obj_fname);
+    stg_object_dispose(&stg);
     return rv;
 }
+
 
 /**
  * @brief Release memory hold by the mesh
@@ -320,15 +364,23 @@ Mesh *mesh_new_from_file(const char *filename)
  */
 void mesh_free(Mesh *self)
 {
+    Mesh *iter, *next;
     VGroup *group;
 
-    for(size_t i = 0; i < self->n_groups; i++){
-        group = &(self->groups[i]);
-        vgroup_dispose(group);
+    iter = self;
+    while(iter){
+        next = iter->next;
+
+        for(size_t i = 0; i < iter->n_groups; i++){
+            group = &(iter->groups[i]);
+            vgroup_dispose(group);
+        }
+        if(iter->groups)
+            free(iter->groups);
+        free(iter);
+
+        iter = next;
     }
-    if(self->groups)
-        free(self->groups);
-    free(self);
 }
 
 bool mesh_set_size(Mesh *self, size_t size)

@@ -19,7 +19,6 @@ typedef struct{
     BasicShader *shader;
     Plane *plane; /*This is more a camera*/
 
-    Mesh *lflg; /*Ad-hoc and Temporary*/
     Skybox *skybox; /*Might get rid of it*/
 
     bool dirty;
