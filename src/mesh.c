@@ -1,3 +1,4 @@
+#include "sg-vec.h"
 #define _GNU_SOURCE
 #define GL_GLEXT_PROTOTYPES
 
@@ -25,6 +26,7 @@
 #include "sg-sphere.h"
 
 #include "stg-object.h"
+#include "btg-reader.h"
 
 /**
  * @brief Inits a VGroup to make it able to hold as much as @p n_triangles
@@ -507,7 +509,119 @@ void mesh_render_buffer(Mesh *self, BasicShader *shader, mat4d vp, vec4 frustum[
     }
 }
 
-Mesh *mesh_new_from_btg(const char *filename)
+Mesh *mesh_new_from_btg_new(const char *filename)
+{
+    Mesh *rv = NULL;
+    BtgReader reader;
+    BtgGeometryIterator iter;
+    bool ret;
+
+    memset(&reader, 0, sizeof(BtgReader));
+    ret = btg_reader_init(&reader, filename);
+    if(!ret)
+        return NULL;
+
+    rv = mesh_new(reader.ntriangles);
+    glm_translated(rv->transformation,
+        (vec3d){reader.bs.cx,
+                reader.bs.cy,
+                reader.bs.cz
+        }
+    );
+    rv->bs = (SGSphered){
+        .center = (SGVec3d){reader.bs.cx,
+                reader.bs.cy,
+                reader.bs.cz
+        },
+        .radius = reader.bs.radius
+    };
+
+    size_t ngroups;
+    uint32_t *buffer = NULL;
+    size_t bsize = 0;
+    VGroup *group;
+    for(int i = 0; i < reader.ntriangles; i++){
+        group = mesh_add_vgroup(rv, reader.triangles[i].material, reader.triangles[i].nelements*3);
+        if(!group){
+            printf("Couldn't get group for %s size %d\n", reader.triangles[i].material, reader.triangles[i].nelements*3);
+            exit(-1);
+        }
+
+        btg_reader_init_geometry_iterator(&reader, &(reader.triangles[i]), &iter);
+        if(bsize < iter.max_buffer_size){
+            buffer = realloc(buffer, iter.max_buffer_size);
+            bsize = iter.max_buffer_size;
+        }
+
+        int8_t vidx, tidx;
+        btg_geometry_object_get_va_indices(&reader.triangles[i], &vidx, NULL, NULL, &tidx, NULL, NULL, NULL);
+        /*TODO: fail/skip element if vidx or tidx = -1*/
+        for(int j = 0; j < reader.triangles[i].nelements; j++){
+            btg_geometry_iterator_read(&iter, buffer, &ngroups);
+
+            uint32_t pos[3], tex[3];
+            SGVec3d verts[3];
+            SGVec2f tc[3];
+            for (int j = 2; j < ngroups; j += 3) { //Edges of the triangle
+                /* Here we have take the same approach as Simgear that is
+                 * starting on the last edge(vertex) of the triangle tri_v[2]
+                 * and going backwards(tri_v[2-1], tri_v[2-2]), reading one
+                 * triangle per operation while eliminating tests on i-1,i-2.
+                 * SimGear seems to consider that more than one triangle could
+                 * be in tri_v and goes by increments of 3. That has been
+                 * reproduced here.
+                 * */
+                pos[2] = buffer[j*iter.stride + vidx];
+                tex[2] = buffer[j*iter.stride + tidx];
+
+                pos[1] = buffer[(j-1)*iter.stride + vidx];
+                tex[1] = buffer[(j-1)*iter.stride + tidx];
+
+                pos[0] = buffer[(j-2)*iter.stride + vidx];
+                tex[0] = buffer[(j-2)*iter.stride + tidx];
+
+                verts[0] = (SGVec3d){
+                    .x = reader.vertices[pos[0]].x,
+                    .y = reader.vertices[pos[0]].y,
+                    .z = reader.vertices[pos[0]].z
+                };
+                verts[1] = (SGVec3d){
+                    .x = reader.vertices[pos[1]].x,
+                    .y = reader.vertices[pos[1]].y,
+                    .z = reader.vertices[pos[1]].z
+                };
+                verts[2] = (SGVec3d){
+                    .x = reader.vertices[pos[2]].x,
+                    .y = reader.vertices[pos[2]].y,
+                    .z = reader.vertices[pos[2]].z
+                };
+
+                tc[0] = (SGVec2f){
+                    .x = reader.texcoords[tex[0]].u,
+                    .y = reader.texcoords[tex[0]].v
+                };
+                tc[1] = (SGVec2f){
+                    .x = reader.texcoords[tex[1]].u,
+                    .y = reader.texcoords[tex[1]].v
+                };
+                tc[2] = (SGVec2f){
+                    .x = reader.texcoords[tex[2]].u,
+                    .y = reader.texcoords[tex[2]].v
+                };
+
+                vgroup_add_triangle(group,
+                    &verts[0], &tc[0],
+                    &verts[1], &tc[1],
+                    &verts[2], &tc[2]
+                );
+            }
+        }
+    }
+    btg_reader_dispose(&reader);
+    return rv;
+}
+
+Mesh *mesh_new_from_btg_old(const char *filename)
 {
     Mesh *rv = NULL;
     SGBinObject *terrain;
@@ -630,6 +744,12 @@ Mesh *mesh_new_from_btg(const char *filename)
 out:
     sg_bin_object_free(terrain);
     return rv;
+}
+
+
+Mesh *mesh_new_from_btg(const char *filename)
+{
+    return mesh_new_from_btg_new(filename);
 }
 
 /**

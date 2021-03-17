@@ -9,6 +9,7 @@ CFLAGS=-g3 -O0 `pkg-config glib-2.0 sdl2 SDL2_image --cflags` \
 	   -I$(TOP_SRCDIR)/lib/cglm/include/ \
 	   -I$(FG_IO)/flightgear-connector \
 	   -I$(FG_IO)/fg-tape \
+	   -I$(FG_IO)/btg-reader \
 	   -DUSE_GLES=0 \
 	   -DENABLE_DEBUG_TRIANGLE=0 \
 	   -DENABLE_DEBUG_CUBE=0 \
@@ -19,6 +20,7 @@ EXEC=view-gl
 SRC= $(wildcard $(SRCDIR)/*.c)
 SRC+= $(filter-out $(FG_IO)/flightgear-connector/fg-connector-test.c, $(wildcard $(FG_IO)/flightgear-connector/*.c))
 SRC+= $(filter-out $(FG_IO)/fg-tape/fg-tape-reader.c, $(wildcard $(FG_IO)/fg-tape/*.c))
+SRC+= $(filter-out $(FG_IO)/btg-reader/test-btg.c, $(wildcard $(FG_IO)/btg-reader/*.c))
 
 OBJ= $(SRC:.c=.o)
 
