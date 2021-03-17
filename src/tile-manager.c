@@ -132,7 +132,7 @@ SGBucket **tile_manager_get_tiles(TileManager *self, GeoLocation *location, floa
     //center
     tmp = tile_manager_get_tile(self, location->latitude, location->longitude);
     nbuckets = add_bucket(nbuckets, 4, rv, tmp);
-
+#if !defined (NO_PRELOAD) || NO_PRELOAD == 0
     //up left
     tmp = tile_manager_get_tile(self, nbox[1].latitude, nbox[0].longitude); //lat lon, Y X
     nbuckets = add_bucket(nbuckets, 4, rv, tmp);
@@ -148,6 +148,7 @@ SGBucket **tile_manager_get_tiles(TileManager *self, GeoLocation *location, floa
     //up right
     tmp = tile_manager_get_tile(self, nbox[1].latitude, nbox[1].longitude);
     nbuckets = add_bucket(nbuckets, 4, rv, tmp);
+#endif
     rv[nbuckets] = NULL;
 
 /*    printf("Bounding locations for region %f m around lat: %f, lon: %f:\n"*/
