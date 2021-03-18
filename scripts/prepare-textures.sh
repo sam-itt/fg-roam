@@ -101,6 +101,6 @@ msgn "\t[ ${GREEN}DONE${NOFORMAT} ]\n"
 
 msgn "Creating smaller versions ..."
 cp -r "${texroot}/full" "${texroot}/small"
-find "${texroot}/small" -type f -exec mogrify -define png:format=png32 -format png -resize 1x1 {} \;
+find "${texroot}/small" -not -path "*/Runway/*" -type f -exec mogrify -define png:format=png32 -format png -resize 1x1 {} \;
 msgn "\t[ ${GREEN}DONE${NOFORMAT} ]\n"
 
