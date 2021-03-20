@@ -52,6 +52,7 @@ double get_sized_unit_value(size_t amount)
 	return(amount);
 }
 
+#ifndef HAVE_MKDIR_P
 /**
  * @brief Creates directory @param dir, creating parents as needed.
  *
@@ -83,7 +84,9 @@ void mkdir_p(const char *dir, mode_t mode)
     }
     mkdir(tmp, mode);
 }
+#endif
 
+#ifndef HAVE_CREATE_PATH
 /**
  * @brief Create all directories leading to @param filename
  *
@@ -109,7 +112,7 @@ bool create_path(const char *filename)
 
     return access(dname, F_OK) == 0;
 }
-
+#endif
 
 #ifdef ENABLE_TEST
 int main(int argc, char *argv[])

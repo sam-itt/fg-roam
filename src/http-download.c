@@ -7,6 +7,7 @@
 
 #include "misc.h"
 
+#ifndef HAVE_HTTP_DOWNLOAD_FILE
 bool http_download_file(char *url, char *output)
 {
     CURL *curl;
@@ -56,5 +57,5 @@ bool http_download_file(char *url, char *output)
     );
     return true;
 }
-
+#endif
 
