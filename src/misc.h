@@ -1,6 +1,8 @@
 #ifndef MISC_H
 #define MISC_H
 #include <stdio.h>
+#include <stdbool.h>
+#include <sys/stat.h>
 
 #define KB_AMOUNT (1024.0)
 #define MB_AMOUNT (1024*1024.0)
@@ -25,4 +27,8 @@ double normalize_periodicd(double min, double max, double value);
 
 char *get_sized_unit_text(size_t amount);
 double get_sized_unit_value(size_t amount);
+
+
+void mkdir_p(const char *dir, mode_t mode);
+bool create_path(const char *filename);
 #endif

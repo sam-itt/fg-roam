@@ -25,7 +25,7 @@
 #include "sg-sphere.h"
 
 #include "stg-object.h"
-
+#include "fg-scenery.h"
 /**
  * @brief Inits a VGroup to make it able to hold as much as @p n_triangles
  * triangles. Will fail (return NULL) if the group as already been inited
@@ -318,15 +318,19 @@ Mesh *mesh_new_from_file(const char *filename)
     char *obj_fname;
     size_t n;
     bool found;
+    size_t str_offset;
 
     if(!stg_object_init(&stg, filename))
         return NULL;
+
+    str_offset = fg_scenery_base_start(filename);
 
     obj_fname = NULL;
     fseek(stg.fp,  0L, SEEK_SET);
     found = stg_object_get_value(&stg, "OBJECT_BASE", true, &obj_fname, &n);
     if(!found) //stg file has no base object, can't do nothing
         goto bail;
+    fg_scenery_get_file(obj_fname+str_offset);
 
     rv = mesh_new_from_btg(obj_fname);
     if(!rv)
@@ -338,6 +342,7 @@ Mesh *mesh_new_from_file(const char *filename)
     /*Load tile accessories e.g airports*/
     fseek(stg.fp,  0L, SEEK_SET);
     while((found = stg_object_get_value(&stg, "OBJECT", true, &obj_fname, &n))){
+        fg_scenery_get_file(obj_fname+str_offset);
         Mesh *acc = mesh_new_from_btg(obj_fname);
         if(!acc){
             printf("%s loading failed, skipping\n",obj_fname);
@@ -512,6 +517,7 @@ Mesh *mesh_new_from_btg(const char *filename)
     Mesh *rv = NULL;
     SGBinObject *terrain;
 
+    printf("Loading btg: %s\n",filename);
     terrain = sg_bin_object_new();
     sg_bin_object_load(terrain, filename);
 

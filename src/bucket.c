@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <unistd.h>
 
 #include "SDL_timer.h"
 #include "bucket.h"
 #include "misc.h"
+
+#include "fg-scenery.h"
 
 // return the horizontal tile span factor based on latitude
 static double sg_bucket_span( double l ) {
@@ -299,21 +302,24 @@ void sg_bucket_sibling_set(SGBucket *self, SGBucket *dest, int dx, int dy)
 
 Mesh *sg_bucket_get_mesh(SGBucket *self)
 {
-    char buffer[256];
     Uint32 start,end;
+    char *filename;
 
 //    printf("Getting mesh for tile %p\n", self);
     if(!self->mesh){
-        snprintf(buffer, 256, TERRAIN_ROOT"/%s", sg_bucket_getfilename(self));
+        /*TODO: better memory management, avoid malloc/free each call*/
+        filename = fg_scenery_get_file(sg_bucket_getfilename(self));
+        if(!filename)
+            return NULL;
         printf("Bucket %p lat:%d lon:%d x:%d y:%d: Will load next bucket: path=%s\n",
             self, self->lat, self->lon, self->x, self->y,
-            buffer
+            filename
         );
         start = SDL_GetTicks();
-        self->mesh = mesh_new_from_file(buffer);
+        self->mesh = mesh_new_from_file(filename);
         end = SDL_GetTicks();
         printf("Mesh loaded from disk in %d ms\n",end-start);
-
+        free(filename);
     }
     return self->mesh;
 }
