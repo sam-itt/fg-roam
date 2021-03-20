@@ -17,20 +17,17 @@
 #include <cglm/cglm.h>
 
 #include "skybox.h"
+#include "fgr-dirs.h"
 
 #define SIZE 1.0f
 
-#ifndef SKY_ROOT
-#define SKY_ROOT "."
-#endif
-
 static const char *faces[] = {
-    SKY_ROOT"/resources/right.png",
-    SKY_ROOT"/resources/left.png",
-    SKY_ROOT"/resources/top.png",
-    SKY_ROOT"/resources/bottom.png",
-    SKY_ROOT"/resources/back.png",
-    SKY_ROOT"/resources/front.png"
+    SKY_DIR"/right.png",
+    SKY_DIR"/left.png",
+    SKY_DIR"/top.png",
+    SKY_DIR"/bottom.png",
+    SKY_DIR"/back.png",
+    SKY_DIR"/front.png"
 };
 #if 1
 static float vertices[] = {

@@ -9,10 +9,7 @@
 
 #include "misc.h"
 #include "http-download.h"
-
-#ifndef TERRAIN_ROOT
-#define TERRAIN_ROOT "/home/samuel/dev/Terrain"
-#endif
+#include "fgr-dirs.h"
 
 #ifndef FG_MIRROR_URL
 #define FG_MIRROR_URL "https://ukmirror.flightgear.org/fgscenery/Terrain"
@@ -46,9 +43,9 @@ char *fg_scenery_get_file(const char *filename)
             && filename[flen-2] == 't'
             && filename[flen-1] == 'g';
     if(is_btg)
-        asprintf(&rv, TERRAIN_ROOT"/%s.gz", filename);
+        asprintf(&rv, TERRAIN_DIR"/%s.gz", filename);
     else
-        asprintf(&rv, TERRAIN_ROOT"/%s", filename);
+        asprintf(&rv, TERRAIN_DIR"/%s", filename);
     if(access(rv, F_OK) != 0){
         /*  This is downloading feature is not intended to make it
          *  into the final version. Terrain/Airports/etc deployed/installed
@@ -76,8 +73,8 @@ char *fg_scenery_get_file(const char *filename)
 
 size_t fg_scenery_base_start(const char *filename)
 {
-    if(strstr(filename, TERRAIN_ROOT))
-        return strlen(TERRAIN_ROOT);
+    if(strstr(filename, TERRAIN_DIR))
+        return strlen(TERRAIN_DIR);
     return 0;
 
 }

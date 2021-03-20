@@ -2,6 +2,8 @@ TOP_SRCDIR=..
 SRCDIR=$(TOP_SRCDIR)/src
 FG_IO=$(TOP_SRCDIR)/lib/fg-io
 
+FGR_HOME=\".\"
+TINY_TEXTURES=0
 
 CC=gcc
 CFLAGS=-g3 -O0 `pkg-config glib-2.0 sdl2 SDL2_image --cflags` \
@@ -12,9 +14,9 @@ CFLAGS=-g3 -O0 `pkg-config glib-2.0 sdl2 SDL2_image --cflags` \
 	   -DUSE_GLES=0 \
 	   -DENABLE_DEBUG_TRIANGLE=0 \
 	   -DENABLE_DEBUG_CUBE=0 \
-	   -DTERRAIN_ROOT=\"/home/samuel/dev/Terrain\" \
-	   -DTEX_ROOT=\"/home/samuel/dev/textures/full\" \
-	   -DNO_PRELOAD=0
+	   -DFGR_HOME=$(FGR_HOME) \
+	   -DNO_PRELOAD=0 \
+	   -DUSE_TINY_TEXTURES=$(TINY_TEXTURES)
 LDFLAGS=-lz -lm `pkg-config glib-2.0 sdl2 SDL2_image --libs` -lGL -lcurl
 EXEC=view-gl
 SRC= $(wildcard $(SRCDIR)/*.c)

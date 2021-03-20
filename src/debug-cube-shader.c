@@ -21,7 +21,7 @@ DebugCubeShader *debug_cube_shader_init(DebugCubeShader *self)
 {
     bool rv;
 
-    if(!shader_init(SHADER(self), SHADER_ROOT"/dc-vertex.gl", SHADER_ROOT"/dc-fragment.gl"))
+    if(!shader_init(SHADER(self), SHADER_DIR"/dc-vertex.gl", SHADER_DIR"/dc-fragment.gl"))
         return NULL;
 
     rv = shader_get_attribute_locationp(SHADER(self), "position", &(self->position));

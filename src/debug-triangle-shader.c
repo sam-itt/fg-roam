@@ -21,7 +21,7 @@ DebugTriangleShader *debug_triangle_shader_init(DebugTriangleShader *self)
 {
     bool rv;
 
-    if(!shader_init(SHADER(self), SHADER_ROOT"/dt-vertex.gl", SHADER_ROOT"/dt-fragment.gl"))
+    if(!shader_init(SHADER(self), SHADER_DIR"/dt-vertex.gl", SHADER_DIR"/dt-fragment.gl"))
         return NULL;
 
     rv = shader_get_attribute_locationp(SHADER(self), "position", &(self->position));

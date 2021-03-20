@@ -1,20 +1,14 @@
 #ifndef SHADER_H
 #define SHADER_H
-
 #include <stdbool.h>
+
 #if USE_GLES
 #include <SDL2/SDL_opengles2.h>
 #else
 #include <SDL2/SDL_opengl.h>
 #endif
 
-#ifndef SHADER_ROOT
-#if USE_GLES
-#define SHADER_ROOT "shaders/gles"
-#else
-#define SHADER_ROOT "shaders/gl"
-#endif
-#endif
+#include "fgr-dirs.h"
 
 typedef struct{
     /*Source filenames*/
