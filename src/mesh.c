@@ -330,9 +330,14 @@ Mesh *mesh_new_from_file(const char *filename)
     found = stg_object_get_value(&stg, "OBJECT_BASE", true, &obj_fname, &n);
     if(!found) //stg file has no base object, can't do nothing
         goto bail;
-    fg_scenery_get_file(obj_fname+str_offset);
-
-    rv = mesh_new_from_btg(obj_fname);
+    /* Quick and dirty way to download the file
+     * TODO: Avoid useless alloc/free*/
+    char *tmp = fg_scenery_get_file(obj_fname+str_offset);
+    rv = NULL;
+    if(tmp){
+        rv = mesh_new_from_btg(tmp);
+        free(tmp);
+    }
     if(!rv)
         goto bail;
     for(size_t i = 0; i < rv->n_groups; i++){
@@ -342,8 +347,12 @@ Mesh *mesh_new_from_file(const char *filename)
     /*Load tile accessories e.g airports*/
     fseek(stg.fp,  0L, SEEK_SET);
     while((found = stg_object_get_value(&stg, "OBJECT", true, &obj_fname, &n))){
-        fg_scenery_get_file(obj_fname+str_offset);
-        Mesh *acc = mesh_new_from_btg(obj_fname);
+        Mesh *acc = NULL;
+        char *tmp = fg_scenery_get_file(obj_fname+str_offset);
+        if(tmp){
+            acc = mesh_new_from_btg(tmp);
+            free(tmp);
+        }
         if(!acc){
             printf("%s loading failed, skipping\n",obj_fname);
             continue;
