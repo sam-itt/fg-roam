@@ -1,3 +1,13 @@
+/*
+ * This file is a near line-by-line translation of Flightgear's sg_binob.cxx
+ * using glib arrays instead of the c++ stl collections.
+ *
+ * SPDX-FileCopyrightText: 2021 Samuel Cuella <samuel.cuella@gmail.com>
+ *
+ * This file is part of SoFIS - an open source EFIS
+ *
+ * SPDX-License-Identifier: GPL-2.0-only
+ */
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
