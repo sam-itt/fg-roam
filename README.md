@@ -1,7 +1,9 @@
 # FG-Roam - Standalone [Flightgear](http://www.flightgear.org) Terrain Viewer
 
+![fg-roam screenshot][1]
+
 This is mainly used a the "synthetic vision" part of
-[SoFIS](https://github.com/sam-itt/sofis) an open-source EFIS.
+[SoFIS][2] an open-source EFIS.
 
 ## Dependencies
 
@@ -39,3 +41,5 @@ $ make
 $ ./view-gl
 ```
 
+[1]: https://github.com/sam-itt/fg-roam/blob/media/fg-roam-screenshot.png?raw=true
+[2]: https://github.com/sam-itt/sofis
