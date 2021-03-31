@@ -153,8 +153,8 @@ bool vgroup_add_triangle(VGroup *self, SGVec3d *v1, SGVec2f *t1, SGVec3d *v2, SG
             return false;
         if(idx[i] > INDICE_MAX){
             printf(
-                "WARNING: Terrain %s Group %p has indice value %d greather than "
-                "what can be stored with current sizeof(indice_t)(%d), Undefined behavior from now\n",
+                "WARNING: Terrain %s Group %p has indice value %zu greather than "
+                "what can be stored with current sizeof(indice_t)(%zu), Undefined behavior from now\n",
                 "CURRENT FILE", self, idx[i], sizeof(indice_t)
             );
         }
@@ -688,12 +688,12 @@ void mesh_dump(Mesh *self)
     printf("Dumping Mesh %p\n",self);
     for(size_t i = 0; i < self->n_groups; i++){
         group = &(self->groups[i]);
-        printf("Group #%d (%s) %d indices:\n",i,
+        printf("Group #%zu (%s) %zu indices:\n",i,
             group->texture->name,
             group->n_indices
         );
         if(group->n_indices%3 != 0)
-            printf("WARNING: Group #%d as a number of vertices that don't match a set of triangles\n",i);
+            printf("WARNING: Group #%zu as a number of vertices that don't match a set of triangles\n",i);
         for(int j = 0; j < group->n_indices; j++){
             printf("indice[%d] -> Vertex[%d]: pos:%0.5f %0.5f %0.5f tex: %0.5f %0.5f\n",
                    j, group->indices[j],
