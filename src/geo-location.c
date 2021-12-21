@@ -5,6 +5,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-only
  */
+#include <math.h>
 #include <stdio.h>
 #include "geo-location.h"
 
@@ -134,6 +135,98 @@ bool geo_location_bounding_coordinates(GeoLocation *self, double distance, GeoLo
     return true;
 }
 
+/**
+ * @brief Converts a decimal latitude to a DMS expression.
+ *
+ * @param latitude The latitude to convert
+ * @param obuf Where to write the output string. Must be at least 14 bytes
+ * long. i.e. This function will write 13 chars and a NULL bytes at this
+ * location.
+ *
+ * @return @param obuf or NULL on failure
+ */
+char *geo_location_latitude_to_dms(double latitude, char *obuf)
+{
+    /* Return format:
+     * L999°99.99' => 13 chars, 14 including trailing \0
+     * */
+
+    obuf[0] = latitude >= 0 ? 'N' : 'S';
+    return geo_location_coordinate_to_dms(latitude, obuf+1);
+}
+
+/**
+ * @brief Converts a decimal longitude to a DMS expression.
+ *
+ * @param longitude The longitude to convert
+ * @param obuf Where to write the output string. Must be at least 14 bytes
+ * long. i.e. This function will write 13 chars and a NULL bytes at this
+ * location.
+ *
+ * @return @param obuf or NULL on failure
+ */
+char *geo_location_longitude_to_dms(double longitude, char *obuf)
+{
+    /* Return format:
+     * L999°99.99' => 13 chars, 14 including trailing \0
+     * */
+
+    obuf[0] = longitude >= 0 ? 'E' : 'W';
+    return geo_location_coordinate_to_dms(longitude, obuf+1);
+}
+
+
+/**
+ * @brief Converts a decimal coordinate to a DMS string representation.
+ *
+ * @param coordinate The coordinate to convert
+ * @param obuf Where to write the output string. Must be at least 13 bytes long
+ * i.e. This function will write at max 12 chars and a NULL bytes at this
+ * location.
+ *
+ * @return @param obuf or NULL on failure
+ */
+char *geo_location_coordinate_to_dms(double coordinate, char *obuf)
+{
+    /* Return format:
+     * 999°99.99' => 12 chars, 13 including trailing \0
+     * */
+    double absolute = fabs(coordinate);
+    int degree = floor(absolute);
+    double fullMinutes = (absolute-degree) * 60.0;
+    int minutes = floor(fullMinutes);
+    int seconds = floor((fullMinutes-minutes)*60.0);
+
+    sprintf(obuf, "%3d\x8f%02d.%02d'", degree, minutes, seconds);
+    return obuf;
+}
+
+/**
+ * @brief Compute the bearing in degrees from @param self to @param dest
+ *
+ * @param self A GeoLocation
+ * @param dest Another GeoLocation
+ *
+ * @return The bearing between the two, in degrees.
+ */
+double geo_location_bearing(GeoLocation *self, GeoLocation *dest)
+{
+    double delta_lon;
+    double slat = deg2rad(self->latitude);
+    double slon = deg2rad(self->longitude);
+    double dlat = deg2rad(dest->latitude);
+    double dlon = deg2rad(dest->longitude);
+
+    delta_lon = dlon - slon;
+
+    double x = cos(dlat)*sin(delta_lon);
+    double y = cos(slat)*sin(dlat) - sin(slat)*cos(dlat)*cos(delta_lon);
+
+    double rv = rad2deg(atan2(x,y));
+    if(rv < 0)
+        rv += 360;
+    return rv;
+}
 
 static inline bool valid_latitude(double value)
 {

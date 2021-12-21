@@ -24,6 +24,13 @@ bool geo_location_set(GeoLocation *self, double latitude, double longitude);
 double geo_location_distance_to(GeoLocation *self, GeoLocation *location);
 bool geo_location_bounding_coordinates(GeoLocation *self, double distance, GeoLocation bounds[2]);
 
+
+char *geo_location_coordinate_to_dms(double coordinate, char *obuf);
+char *geo_location_latitude_to_dms(double latitude, char *obuf);
+char *geo_location_longitude_to_dms(double longitude, char *obuf);
+
+double geo_location_bearing(GeoLocation *self, GeoLocation *dest);
+
 static inline bool geo_location_set_rad(GeoLocation *self, double latitude, double longitude)
 {
     return geo_location_set(self, rad2deg(latitude), rad2deg(longitude));
