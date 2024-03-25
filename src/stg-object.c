@@ -40,52 +40,43 @@ StgObject *stg_object_dispose(StgObject *self)
     return self;
 }
 
-bool stg_object_get_value(StgObject *self, const char *verb,
-                          bool concat_base, char **out, size_t *n)
-{
+bool stg_object_get_value(StgObject *self, const char *verb, bool concat_base, char **out, size_t *n) {
     ssize_t read;
     size_t vlen;
-    char *rv;
-
-    rv = NULL;
+    char *rv = NULL;
+    if (self == NULL || verb == NULL || out == NULL || n == NULL) {
+        return false;
+    }
     vlen = strlen(verb);
-    do{
-        read = getline(&self->lbuf, &self->abuf, self->fp);
-        if(!strncmp(self->lbuf, verb, vlen) && self->lbuf[vlen] == ' '){
-            /*
-             * VERB data\n
-             * vlen+1: advance to data
-             * n-(vlen+1)-1: omit the '\n' after data
-             *
-             * First part is strlen, +1 for the ending NULL byte
-             */
-            size_t needed = (read - (vlen+1) - 1) + 1;
-            if(concat_base)
+    while ((read = getline(&self->lbuf, &self->abuf, self->fp)) != -1) {
+        if (!strncmp(self->lbuf, verb, vlen) && self->lbuf[vlen] == ' ') {
+            size_t needed = read - (vlen + 1);
+            if (concat_base) {
                 needed += self->bp_len;
-            if(*out == NULL || needed > *n){
+            }
+            if (*out == NULL || needed > *n) {
                 char *tmp = realloc(*out, needed * sizeof(char));
-                if(!tmp)
+                if (!tmp) {
+                    fprintf(stderr, "Debug: Realloc failed\n");
                     return false;
+                }
                 *out = tmp;
                 *n = needed;
             }
-            if(concat_base){
+            if (concat_base) {
                 strncpy(*out, self->base_path, self->bp_len);
-                strncpy(*out + self->bp_len,
-                    self->lbuf + (vlen+1),
-                    needed - self->bp_len - 1
-                );
-            }else{
-                strncpy(*out,
-                    self->lbuf + (vlen+1),
-                    needed-1
-                );
+                strncpy(*out + self->bp_len, self->lbuf + (vlen + 1), needed - self->bp_len);
+                (*out)[needed - 1] = '\0'; // Ensure null-termination
+            } else {
+                strncpy(*out, self->lbuf + (vlen + 1), needed);
+                (*out)[needed - 1] = '\0'; // Ensure null-termination
             }
-            (*out)[needed-1] = '\0';
             return true;
-            break;
         }
-    }while(read > 0);
+    }
+    if (read == -1) {
+        printf("Reached end of file or encountered an error.\n");
+    }
 
     return false;
 }
