@@ -19,7 +19,7 @@
 #include "fgr-dirs.h"
 
 #ifndef FG_MIRROR_URL
-#define FG_MIRROR_URL "https://ukmirror.flightgear.org/fgscenery/Terrain"
+#define FG_MIRROR_URL "https://flightgear.sourceforge.net/scenery/Terrain"
 #endif
 
 
