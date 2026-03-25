@@ -45,6 +45,10 @@ char *fg_scenery_get_file(const char *filename)
      * TODO: Sort this out.
      * */
     flen = strlen(filename);
+    if(flen < 4){
+        printf("%s: Invalid filename %s\n", __FUNCTION__, filename);
+        return NULL;
+    }
     is_btg =   filename[flen-4] == '.'
             && filename[flen-3] == 'b'
             && filename[flen-2] == 't'
