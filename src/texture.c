@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <limits.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
@@ -211,6 +212,11 @@ void texture_store_shutdown(void)
 Texture *texture_new(const char *filename, const char *name)
 {
     Texture *rv;
+
+    if(_ntextures == UCHAR_MAX){
+        printf("%s: Texture store (array) full!\n", __FUNCTION__);
+        return NULL;
+    }
 
     rv = calloc(1, sizeof(Texture));
     if(rv){
