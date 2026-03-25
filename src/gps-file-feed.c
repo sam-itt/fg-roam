@@ -130,7 +130,8 @@ static void gps_file_feed_get_next(GpsFileFeed *self, GpsRecord *record)
     time_t rec_dt;
     time_t real_dt;
 
-    if(current_idx >= self->trace.nrecords){
+    /*loop back to the first record if we land on the last one*/
+    if(current_idx >= self->trace.nrecords - 1){
         current = NULL;
         current_idx = 0;
     }
