@@ -130,6 +130,11 @@ static void gps_file_feed_get_next(GpsFileFeed *self, GpsRecord *record)
     time_t rec_dt;
     time_t real_dt;
 
+    if(current_idx >= self->trace.nrecords){
+        current = NULL;
+        current_idx = 0;
+    }
+
     if(current){
         rec_dt = self->trace.records[current_idx+1].time - current->time;
         real_dt = time(NULL) - last_ticks;
